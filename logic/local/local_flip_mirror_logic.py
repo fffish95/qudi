@@ -30,7 +30,6 @@ import time
 
 class LocalFlipMirrorLogic(GenericLogic):
     servomotor1 = Connector(interface='MotorInterface')
-    sigUpdateAngle = QtCore.Signal()
 
     def __init__(self, config, **kwargs):
         super().__init__(config= config, **kwargs)
@@ -40,7 +39,6 @@ class LocalFlipMirrorLogic(GenericLogic):
         self._motor = self.servomotor1()
 
         self._current_angle = self._motor.get_pos()
-        self.sigUpdateAngle.emit()
 
     def on_deactivate(self):
         self._motor.abort()
@@ -49,12 +47,10 @@ class LocalFlipMirrorLogic(GenericLogic):
     def move_rel(self, step_val):
         self._motor.move_rel(step_val)
         self._current_angle = self._motor.get_pos()
-        self.sigUpdateAngle.emit()
 
     def move_abs(self, new_angle):
         self._motor.move_abs(new_angle)
         self._current_angle = self._motor.get_pos()
-        self.sigUpdateAngle.emit()
 
     def detach(self):
         self._motor.abort()
@@ -62,6 +58,5 @@ class LocalFlipMirrorLogic(GenericLogic):
     def attach(self):
         self._motor._attach()
         self._current_angle = self._motor.get_pos()
-        self.sigUpdateAngle.emit()
 
 
