@@ -24,7 +24,7 @@ from core.module import Base
 from core.configoption import ConfigOption
 from interface.motor_interface import MotorInterface
 
-
+import numpy as np
 from Arduino import Arduino
 import time
 
@@ -46,6 +46,8 @@ class LocalArduinoServo(Base, MotorInterface):
         pin: 5
         0 degree position: 750          #test with code ServoMotor._board.Servos.writeMicroseconds(5,750)
         90 degree position: 1650        #test with code ServoMotor._board.Servos.writeMicroseconds(5,1650)
+        slow down time: 0               #s
+        step size: 0.3                  #degree
         angle_range:
             - [0,90]
     """
@@ -58,12 +60,15 @@ class LocalArduinoServo(Base, MotorInterface):
     _pin= ConfigOption('pin', missing='error')
     _deg0= ConfigOption('0 degree position', missing='error')
     _deg90= ConfigOption('90 degree position', missing='error')
+    _slow_down_time= ConfigOption('slow down time', missing='error')
+    _step_size = ConfigOption('step size', missing='error')
     _angle_range = ConfigOption('angle_range', missing= 'error')
 
 
     def on_activate(self):
         self._min= int(self._deg0)
         self._max= self._min + (int(self._deg90)-self._min)*2
+        self._step_time= self._slow_down_time/ 90 * self._step_size
 
         self._board=Arduino(baud = self._baud, port= self._arduino_port[0], timeout= self._timeout)
         self._attach()
@@ -80,15 +85,27 @@ class LocalArduinoServo(Base, MotorInterface):
         if (new_angle < self._angle_range[0][0]) or (new_angle > self._angle_range[0][1]):
             self.log.error('New angle out of angle range.')
             return -1
-        self._board.Servos.write(self._pin ,new_angle)
-        self.current_angle = new_angle
+        self.move_abs(new_angle)
+
     
     def move_abs(self, new_angle):
         if (new_angle < self._angle_range[0][0]) or (new_angle > self._angle_range[0][1]):
             self.log.error('New angle out of angle range.')
             return -1
-        self._board.Servos.write(self._pin, new_angle)
-        self.current_angle = new_angle
+        if self.current_angle == new_angle:
+            return 0            
+        if self.current_angle < new_angle:
+            for angle in np.arange(self.current_angle,new_angle + self._step_size,self._step_size)[1:]:
+                self._board.Servos.write(self._pin,angle)
+                time.sleep(self._step_time)
+                self.current_angle = angle
+        else:
+            for angle in np.arange(self.current_angle,new_angle - self._step_size,-self._step_size)[1:]:
+                self._board.Servos.write(self._pin,angle)
+                time.sleep(self._step_time)
+                self.current_angle = angle
+        
+
 
     def abort(self):
         self._board.Servos.detach(self._pin)
@@ -109,5 +126,6 @@ class LocalArduinoServo(Base, MotorInterface):
 
     def _attach(self):
         self._board.Servos.attach(self._pin, min=self._min, max=self._max)
-        self._board.Servos.write(self._pin,0)
-        self.current_angle = 0
+        self._board.Servos.write(self._pin,45)
+        self.current_angle = 45
+        self.move_abs(0)

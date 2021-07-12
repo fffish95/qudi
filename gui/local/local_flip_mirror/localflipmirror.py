@@ -45,23 +45,19 @@ class LocalFlipMirrorGui(GUIBase):
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
     def on_activate(self):
+        
         self._flip_mirror_logic = self.localflipmirrorlogic()
     
-        self._mw= LocalFlipMirrorMainWindow()#
+        self._mw= LocalFlipMirrorMainWindow()
 
         self._mw.setDockNestingEnabled(True)
 
         self._angle= self._flip_mirror_logic._current_angle
 
-        self._mw.anglespinBox.setValue(self._angle)
-        self._mw.anglespinBox.setKeyboardTracking(False)
-
         self._mw.actionStart.triggered.connect(self.attach_clicked)
         self._mw.actionStop.triggered.connect(self.detach_clicked)
 
-        self._mw.anglespinBox.valueChanged.connect(self.anglespinBoxvalueChanged)
         self._mw.statuspushbutton.clicked.connect(self.flipmirror)
-        self._flip_mirror_logic.sigUpdateAngle.connect(self.updateAngle)
         self.show()
     
     def show(self):
@@ -74,32 +70,32 @@ class LocalFlipMirrorGui(GUIBase):
         self._mw.actionStart.triggered.disconnect()
         self._mw.actionStop.triggered.disconnect()
 
-        self._mw.anglespinBox.valueChanged.disconnect()
-        self._mw.anglespinBox.returnPressed.disconnect()
         self._mw.statuspushbutton.clicked.disconnect()
-        self._flip_mirror_logic.sigUpdateAngle.disconnect()
         return 0
-
-    def anglespinBoxvalueChanged(self):
-        return self._flip_mirror_logic.move_abs(int(self._mw.anglespinBox.value()))
 
 
     def detach_clicked(self):
         self._flip_mirror_logic.detach()
+        self._mw.statuspushbutton.setDisabled(True)
         self._mw.actionStart.setEnabled(True)
         self._mw.actionStop.setDisabled(True)
     def attach_clicked(self):
         self._flip_mirror_logic.attach()
+        self._mw.statuspushbutton.setEnabled(True)
         self._mw.actionStart.setDisabled(True)
         self._mw.actionStop.setEnabled(True)
     def flipmirror(self):
-        if self._mw.statuspushbutton.text() == 'off':
+        self._mw.statuspushbutton.setDisabled(True)
+
+        if  self._mw.statuspushbutton.text()=='off':
             self._flip_mirror_logic.move_abs(90)
             self._mw.statuspushbutton.setText('on')
         else:
             self._flip_mirror_logic.move_abs(0)
             self._mw.statuspushbutton.setText('off')
-    def updateAngle(self):
-        self._mw.anglespinBox.setValue(self._flip_mirror_logic._current_angle)
+        self._mw.statuspushbutton.setEnabled(True)
+
+
     
+
 
