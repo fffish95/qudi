@@ -29,6 +29,7 @@ from qtpy import QtCore
 from qtpy import uic
 import time
 
+
 class LocalFlipMirrorMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         this_dir = os.path.dirname(__file__)
@@ -58,6 +59,8 @@ class LocalFlipMirrorGui(GUIBase):
         self._mw.actionStop.triggered.connect(self.detach_clicked)
 
         self._mw.statuspushbutton.clicked.connect(self.flipmirror)
+        self._flip_mirror_logic.sigOntoOffProcessing.connect(self.onttooff_processing, QtCore.Qt.DirectConnection)
+        self._flip_mirror_logic.sigOfftoOnProcessing.connect(self.offtoon_processing, QtCore.Qt.DirectConnection)
         self.show()
     
     def show(self):
@@ -86,14 +89,25 @@ class LocalFlipMirrorGui(GUIBase):
         self._mw.actionStop.setEnabled(True)
     def flipmirror(self):
         self._mw.statuspushbutton.setDisabled(True)
-
         if  self._mw.statuspushbutton.text()=='off':
-            self._flip_mirror_logic.move_abs(90)
-            self._mw.statuspushbutton.setText('on')
+            self._flip_mirror_logic.move_to_pos(90)
         else:
-            self._flip_mirror_logic.move_abs(0)
+            self._flip_mirror_logic.move_to_pos(0)
+    
+    def onttooff_processing(self):
+        progress_bar = int((90-self._flip_mirror_logic._current_angle)/90*100)
+        if progress_bar == 100:
             self._mw.statuspushbutton.setText('off')
-        self._mw.statuspushbutton.setEnabled(True)
+            self._mw.statuspushbutton.setDisabled(False)
+        else:
+            self._mw.statuspushbutton.setText('on->off:{0}%'.format(progress_bar))
+    def offtoon_processing(self):
+        progress_bar = int((self._flip_mirror_logic._current_angle)/90*100)
+        if progress_bar == 100:
+            self._mw.statuspushbutton.setText('on')
+            self._mw.statuspushbutton.setDisabled(False)
+        else:
+            self._mw.statuspushbutton.setText('off->on:{0}%'.format(progress_bar))
 
 
     
