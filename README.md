@@ -64,3 +64,7 @@ conda env create -f conda-env-win10-64bit-qt5.yml
 conda activate qudi
 python -m pip install --upgrade pip
 python -m install arduino-python3
+
+## install pythonnet
+python -m pip uninstall clr
+conda install -c conda-forge pythonnet
