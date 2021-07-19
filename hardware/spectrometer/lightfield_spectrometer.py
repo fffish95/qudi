@@ -194,3 +194,17 @@ class Lightfield(Base, SpectrometerInterface):
     def recordSpectrum(self):
         """ One-stop function to ecord a spectrum """
         pass
+
+    def setExposure(self, exposureTime):
+        """ Set the acquisition exposure time
+
+        @param (float) exposureTime: Exposure time to set in second
+        """
+        pass
+
+    def getExposure(self):
+        """ Get the acquisition exposure time
+
+        @return (float): Exposure time in second
+        """
+        pass
