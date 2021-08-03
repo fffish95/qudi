@@ -536,7 +536,7 @@ def _check_1D_input(self, x_axis, data, params):
             self.log.error('Given parameter is no one dimensional array.')
             error = -1
     if not isinstance(params, Parameters):
-        self.log.error('Parameters object is not valid in estimate_gaussian.')
+        self.log.error('The input parameters for estimator are not Parameter type.')
         error = -1
 
     return error
