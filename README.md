@@ -68,3 +68,14 @@ python -m install arduino-python3
 ## install pythonnet
 python -m pip uninstall clr
 conda install -c conda-forge pythonnet
+
+## fetch upsteam
+git remote add upstream https://github.com/Ulm-IQO/qudi.git
+git fetch upstream
+git rebase upstream/master
+git push origin master --force
+
+## fetch branch
+git reset --hard origin/master
+git fetch origin
+git checkout -b feature origin/feature
