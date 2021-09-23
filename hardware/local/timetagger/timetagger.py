@@ -32,6 +32,11 @@ class TT(Base):
             bins_width: 1e12
             n_values: 100
         
+        
+        channel_params:
+            one:
+                delay: 0
+                # trigger_level: 0
 
 
     """
@@ -43,8 +48,9 @@ class TT(Base):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.sample_rate = 50
-        chan_alphabet = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight']
-        self.channel_codes = dict(zip(chan_alphabet, list(range(1,9,1))))
+        chan_alphabet = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 
+        'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen']
+        self.channel_codes = dict(zip(chan_alphabet, list(range(1,19,1))))
 
     def on_activate(self):
         self.setup_TT()
@@ -61,17 +67,19 @@ class TT(Base):
             self.log.error(f"\nCheck if the TimeTagger device is being used by another instance.")
             Exception(f"\nCheck if the TimeTagger device is being used by another instance.")
 
+        # set specified in the cfg channels params
+        for channel, params in self._channels_params.items():
+            channel = self.channel_codes[channel]
+            if 'delay' in params.keys():
+                self.delay_channel(delay=params['delay'], channel = channel)
+            if 'triggerLevel' in params.keys():
+                self.tagger.setTriggerLevel(channel, params['triggerLevel'])
+
         #Create combine channels:
 
-        self._combined_apdChans = self.combiner(self._counter["channels"])     # create virtual channel that combines time_tags from apdChans. 
+        # self._combined_apdChans = self.combiner(self._counter["channels"])     # create virtual channel that combines time_tags from apdChans. 
 
-        # # set specified in the params.yaml channels params
-        # for channel, params in self._channels_params.items():
-        #     channel = self.channel_codes[channel]
-        #     if 'delay' in params.keys():
-        #         self.delay_channel(delay=params['delay'], channel = channel)
-        #     if 'triggerLevel' in params.keys():
-        #         self.tagger.setTriggerLevel(channel, params['triggerLevel'])
+
 
     def histogram(self, **kwargs):  
         """
@@ -193,7 +201,7 @@ class TT(Base):
         filename, self.allChans)
 
 
-    def time_differences(self, click_channel, start_channel, scan_trigger_channel, line_trigger_channel, binwidth, n_bins,n_histograms):
+    def time_differences(self, click_channel, start_channel, scan_trigger_channel, line_trigger_channel, binwidth, n_bins, n_histograms):
         """
         Gives the ability to launch startstop measurement with scan trigger and line trigger.
         make 2d g^2 measurement possible
