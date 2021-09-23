@@ -7,12 +7,37 @@ from core.module import Base
 
 
 class TT(Base):
+    """ Designed for driving TimeTagger from swabian instruments.
+
+    See Time Tagger User Manual.
+
+    Example config for copy-paste:
+
+    tagger:
+        module.Class: 'local.timetagger.TT'
+        hist:
+            channel: 1
+            trigger_channel: 5
+            bins_width: 1000    #ps
+            number_of_bins: 500
+        
+        corr:
+            channel_start: 1
+            channel_stop: 2
+            bins_width: 1000
+            number_of_bins: 1000
+
+        counter:
+            channels: [1, 2]
+            bins_width: 1e12
+            n_values: 100
+        
+
+
+    """
     _hist = ConfigOption('hist', False, missing='warn')
     _corr = ConfigOption('corr', False, missing='warn')
-    _combiner = ConfigOption('combiner', False, missing='warn')
     _counter = ConfigOption('counter', False, missing='warn')
-    _combiner = ConfigOption('combiner', False, missing='warn')
-    _test_channels = ConfigOption('test_channels', False, missing='warn')
     _channels_params = ConfigOption('channels_params', False, missing='warn')
 
     def __init__(self, **kwargs):
@@ -36,13 +61,9 @@ class TT(Base):
             self.log.error(f"\nCheck if the TimeTagger device is being used by another instance.")
             Exception(f"\nCheck if the TimeTagger device is being used by another instance.")
 
-        for i in self._test_channels:
-            print(f"RUNNING CHANNEL {i} WITH TEST SIGNAL!")
-            self.tagger.setTestSignal(i, True)
-
         #Create combine channels:
 
-        self._combined_channels = self.combiner(self._combiner["channels"])
+        self._combined_apdChans = self.combiner(self._counter["channels"])     # create virtual channel that combines time_tags from apdChans. 
 
         # # set specified in the params.yaml channels params
         # for channel, params in self._channels_params.items():
@@ -54,13 +75,13 @@ class TT(Base):
 
     def histogram(self, **kwargs):  
         """
-        The histogram takes default values from the params.yaml
-
-        Besides, it is possible to set values:
+        Histogram the clicks in 'channel' with trigger
+        It is possible to set values:
         Example:
         channel=1, trigger_channel=5, bins_width=1000, numer_of_bins= 1000
-
-        get data by hist.getData()
+        bins_width is in ps
+        get data by .getData()
+        get time index by .getIndex()
         """
         for key, value in kwargs.items():
             if key in self._hist.keys():
@@ -73,29 +94,36 @@ class TT(Base):
     
     def correlation(self, **kwargs):  
         """
-        The correlation takes default values from the params.yaml
-
-        Besides, it is possible to set values:
+        Accumulates time differences between clicks on two channels into a histogram.
+        It is possible to set values:
         Example:
         channel_start=1, channel_stop=2, bins_width=1000, numer_of_bins= 1000
 
-        get data by corr.getData()
+        get data by .getData()
+        get normalized g2 by .getDataNormalized()
+        get time index by .getIndex()
         """
         for key, value in kwargs.items():
             if key in self._corr.keys():
                 self._corr.update({key:value})
         return Correlation(self.tagger,
-                            self._corr['channel_start'],
                             self._corr['channel_stop'],
+                            self._corr['channel_start'],
                             self._corr['bins_width'],
                             self._corr['number_of_bins'])
 
 
     def delay_channel(self, channel, delay):
+        """
+        Set delay on the channel,
+        this delay can be positive or negative,
+        if absolute value of the delay not exceed 2000000 ps, this delay will be applied onboard directly.
+        """
         self.tagger.setInputDelay(delay=delay, channel=channel)
 
 
     def dump(self, dumpPath, filtered_channels=None): 
+
         if filtered_channels != None:
             self.tagger.setConditionalFilter(filtered=[filtered_channels], trigger=self.apdChans)
         return Dump(self.tagger, dumpPath, self.maxDumps,\
@@ -103,8 +131,8 @@ class TT(Base):
         
     def countrate(self, channels=None):
         """
-        The countrate takes default values from the params.yaml
-        get data by ctrate.getData()
+        Measures the average count rate on one or more channels.
+        get data by .getData(). The output is 1D_array giving the counts per second on the specified channels starting from the very first tag arriving after the instantiation or last call to clear() of the measurement.
         """
         if channels == None:
             channels = self._counter['channels']
@@ -114,8 +142,9 @@ class TT(Base):
 
     def counter(self, **kwargs):
         """
-        refresh_rate - number of samples per second:
-
+        Using a circular buffer to record countrate.
+        bins_width: binwidth in ps; n_values: number of bins
+        get data by .getData(). The output is 2D_array giving the current values of the circular buffer for each channel.
         """
         for key, value in kwargs.items():
             if key in self._counter.keys():
@@ -127,35 +156,55 @@ class TT(Base):
                                 self._counter['bins_width'],
                                 self._counter['n_values'])
 
-    def time_differences(click_channel, start_channel, next_channel, binwidth, n_bins,n_histograms):
-        return TimeDifferences(self.tagger, 
-                                click_channel, 
-                                start_channel, 
-                                next_channel,
-                                binwidth, 
-                                n_bins,
-                                n_histograms)
+
     def combiner(self, channels):
+        """
+        Create virtual channel that combines time_tags from 'combiner channels'. 
+        """
         return Combiner(self.tagger, channels)
 
-    def count_between_markers(self, click_channel, begin_channel, end_channel, n_values):
+
+    def count_between_markers(self, click_channel, begin_channel, n_values, end_channel = None):
+        """
+        Counts events on a single channel within the time indicated by a “start” and “stop” signals.
+        Compared with counter function, this function gives possibility to synchronize the measurements and actions.
+        With end_channel on this function accumulate counts within a gate.
+        """
         return CountBetweenMarkers(self.tagger,
                                 click_channel,
                                 begin_channel,
                                 end_channel,
                                 n_values)     
 
-    def time_differences(self, click_channel, start_channel, next_channel, binwidth,n_bins, n_histograms):
-        return TimeDifferences(self.tagger, 
-                            click_channel=click_channel,
-                            start_channel=start_channel,
-                            next_channel=next_channel,
-                            binwidth=binwidth,
-                            n_bins=n_bins,
-                            n_histograms=n_histograms)
 
-    def write_into_file(self, filename, channels):
+
+    def write_into_file(self, filename, apdChans = None, filteredChans = []):
+        """
+        Writes the time-tag-stream into a file in a binary format with a lossless compression.
+        """
+        if apdChans is None:
+            apdChans = self._counter["channels"]
+        if filteredChans == []:
+            self.tagger.setConditionalFilter(trigger=[], filtered=[])
+        else:
+            self.tagger.setConditionalFilter(trigger=apdChans, filtered=filteredChans)
+        self.allChans = [ *apdChans, *filteredChans]
         return FileWriter(self.tagger,
-        filename, channels)
+        filename, self.allChans)
+
+
+    def time_differences(self, click_channel, start_channel, scan_trigger_channel, line_trigger_channel, binwidth, n_bins,n_histograms):
+        """
+        Gives the ability to launch startstop measurement with scan trigger and line trigger.
+        make 2d g^2 measurement possible
+        """
+        return TimeDifferences(self.tagger, 
+                                click_channel, 
+                                start_channel, 
+                                scan_trigger_channel,
+                                line_trigger_channel,
+                                binwidth, 
+                                n_bins,
+                                n_histograms)
 
     
