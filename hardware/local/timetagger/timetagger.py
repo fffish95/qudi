@@ -29,17 +29,18 @@ class TT(Base):
 
         counter:
             channels: [1, 2]
-            bins_width: 1e12
+            bins_width: 2e10
             n_values: 100
         
         
         channel_params:
-            one:
+            ch1:
                 delay: 0
                 # trigger_level: 0
 
 
     """
+    # config options
     _hist = ConfigOption('hist', False, missing='warn')
     _corr = ConfigOption('corr', False, missing='warn')
     _counter = ConfigOption('counter', False, missing='warn')
@@ -47,9 +48,8 @@ class TT(Base):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.sample_rate = 50
-        chan_alphabet = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 
-        'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen']
+        chan_alphabet = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8', 'ch9', 'ch10', 
+        'ch11', 'ch12', 'ch13', 'ch14', 'ch15', 'ch16', 'ch17', 'ch18']
         self.channel_codes = dict(zip(chan_alphabet, list(range(1,19,1))))
 
     def on_activate(self):
@@ -76,8 +76,7 @@ class TT(Base):
                 self.tagger.setTriggerLevel(channel, params['triggerLevel'])
 
         #Create combine channels:
-
-        # self._combined_apdChans = self.combiner(self._counter["channels"])     # create virtual channel that combines time_tags from apdChans. 
+        self._combined_detectorChans = self.combiner(self._counter["channels"])     # create virtual channel that combines time_tags from apdChans. 
 
 
 
@@ -129,13 +128,6 @@ class TT(Base):
         """
         self.tagger.setInputDelay(delay=delay, channel=channel)
 
-
-    def dump(self, dumpPath, filtered_channels=None): 
-
-        if filtered_channels != None:
-            self.tagger.setConditionalFilter(filtered=[filtered_channels], trigger=self.apdChans)
-        return Dump(self.tagger, dumpPath, self.maxDumps,\
-                                    self.allChans)
         
     def countrate(self, channels=None):
         """
