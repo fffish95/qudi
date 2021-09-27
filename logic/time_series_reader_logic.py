@@ -578,7 +578,8 @@ class TimeSeriesReaderLogic(GenericLogic):
 
     def _process_trace_data(self, data):
         """
-        Processes raw data from the streaming device
+        Update data from the streaming device into self._trace_data, data size should smaller than self._trace_data.
+        calculate averages and update self._trace_data_averaged.
         """
         # Down-sample and average according to oversampling factor
         if self.oversampling_factor > 1:
@@ -601,7 +602,7 @@ class TimeSeriesReaderLogic(GenericLogic):
         if self._data_recording_active:
             self._recorded_data.append(data.copy())
 
-        data = data[:, -self._trace_data.shape[1]:]
+        data = data[:, -self._trace_data.shape[1]:]     # Just in case data size is larger than self._trace_data, which should not happened.
         new_samples = data.shape[1]
 
         # Roll data array to have a continuously running time trace
