@@ -33,7 +33,7 @@ class TT(Base):
             n_values: 100
         
         
-        channel_params:
+        channels_params:
             ch1:
                 delay: 0
                 # trigger_level: 0
