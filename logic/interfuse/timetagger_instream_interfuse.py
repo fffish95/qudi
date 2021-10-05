@@ -27,7 +27,7 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         module.Class: 'interfuse.timetagger_instream_interfuse.TTInstreamInterfuse'
         connect:
             timetagger: 'tagger'
-        active_channels:  
+        available_channels:  
             - 'ch1'
             - 'ch2'
             - 'ch3'
@@ -35,22 +35,25 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
             - 'detectorChans'
         sample_rate: 50
         buffer_size: 10000000
+        mode: 'Counter'
 
 
     """
 
     timetagger = Connector(interface = "TT")
     # config options
-    __active_channels = ConfigOption(name='active_channels', default=tuple(), missing='nothing')
+    __available_channels = ConfigOption(name='available_channels', default=tuple(), missing='nothing')
     __sample_rate = ConfigOption(name='sample_rate', default=50, missing='nothing')
     __buffer_size = ConfigOption(name='buffer_size', default=10000000, missing='nothing')
+    __mode = ConfigOption(name='mode', default='Counter', missing='nothing')
 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.__data_type = np.float64
-        self.__measurement_mode = TTMeasurementMode.COUNTER
+        if self.__mode == 'Counter':
+            self.__measurement_mode = TTMeasurementMode.COUNTER
 
         # Data buffer
         self._data_buffer = np.empty(0, dtype=self.__data_type)
@@ -58,6 +61,7 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         self._is_running = False
         self._last_read = None
         self._start_time = None
+        self.__active_channels = tuple()
 
         # Stored hardware constraints
         self._constraints = None
@@ -67,13 +71,24 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
 
     def on_activate(self):
         self._tt = self.timetagger()
+        
+        self.__available_channels = natural_sort(str(chnl) for chnl in self.__available_channels)
+        self.__channel_lists = []
+        for chn in self.__available_channels:
+            if chn.startswith('ch'):
+                self.__channel_lists.append(int(chn[2:]))
+            elif chn == 'detectorChans':
+                self.__channel_lists.append(self._tt._combined_detectorChans.getChannel())
+            else:
+                self.log.error('Given available_channels can not be recognized.')
+                return -1
+        self.__available_channel_codes = dict(zip(self.__available_channels, self.__channel_lists))
         if self.__measurement_mode == TTMeasurementMode.COUNTER:
-            self.__active_channels = natural_sort(str(chnl) for chnl in self.__active_channels)
             # Create constraints
             self._constraints = DataInStreamConstraints()
             self._constraints.digital_channels = tuple(
                 StreamChannel(name=ch, type=StreamChannelType.DIGITAL, unit='Cps') for ch in
-                self.__active_channels)
+                self.__available_channels)
 
 
 
@@ -82,11 +97,8 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         """
         if self.is_running:
             self._is_running = False
-        self.Counterfunc['ch1'].clear()
-        self.Counterfunc['ch2'].clear()
-        self.Counterfunc['ch3'].clear()
-        self.Counterfunc['ch4'].clear()
-        self.Counterfunc['detectorChans'].clear()
+        for chn in self.__active_channels:
+            self.Counterfunc[chn].clear
         self.Counterfunc = None
 
     def configure(self, *args, **kwargs):
@@ -136,8 +148,7 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         """
         FIX ME
         """
-        if self.__measurement_mode == TTMeasurementMode.COUNTER:
-            return {'measurement_mode': TTMeasurementMode.COUNTER,
+        return {'measurement_mode': self.__measurement_mode,
                     'active_channels': self.__active_channels,
                     'sample_rate': self.__sample_rate,
                     'buffer_size': self.__buffer_size}
@@ -229,14 +240,13 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
     def active_channels(self, channels):
         if self._check_settings_change():
             channels = tuple(channels)
-            # avail_chnl_names = tuple(ch.name for ch in self.available_channels)
-            # if any(ch not in avail_chnl_names for ch in channels):
-            #     self.log.error('Invalid channel to stream from encountered: {0}.\nValid channels '
-            #                    'are: {1}'
-            #                    ''.format(channels, avail_chnl_names))
-            #     return
+            avail_chnl_names = tuple(ch.name for ch in self.available_channels)
+            if any(ch not in avail_chnl_names for ch in channels):
+                self.log.error('Invalid channel to stream from encountered: {0}.\nValid channels '
+                               'are: {1}'
+                               ''.format(channels, avail_chnl_names))
+                return
             self.__active_channels = channels
-            self.__active_channels = natural_sort(str(chnl) for chnl in self.__active_channels)
         return
 
     def get_constraints(self):
@@ -261,12 +271,10 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         self._is_running = True
         self._start_time = time.perf_counter()
         self._last_read = self._start_time
-        self.Counterfunc={}
-        self.Counterfunc['ch1'] = self._tt.counter(channels=[1], refresh_rate=self.__sample_rate, n_values=(self.buffer_size // self.number_of_channels))
-        self.Counterfunc['ch2'] = self._tt.counter(channels=[2], refresh_rate=self.__sample_rate, n_values=(self.buffer_size // self.number_of_channels))
-        self.Counterfunc['ch3'] = self._tt.counter(channels=[3], refresh_rate=self.__sample_rate, n_values=(self.buffer_size // self.number_of_channels))
-        self.Counterfunc['ch4'] = self._tt.counter(channels=[4], refresh_rate=self.__sample_rate, n_values=(self.buffer_size // self.number_of_channels))
-        self.Counterfunc['detectorChans'] = self._tt.counter(channels=[self._tt._combined_detectorChans.getChannel()], refresh_rate=self.__sample_rate, n_values=(self.buffer_size // self.number_of_channels))
+        if self.__measurement_mode == TTMeasurementMode.COUNTER:
+            self.Counterfunc={}
+            for chn in self.__active_channels:
+                self.Counterfunc[chn] = self._tt.counter(channels=[self.__available_channel_codes[chn]], refresh_rate=self.__sample_rate, n_values=(self.buffer_size // self.number_of_channels))
         return 0
 
     def stop_stream(self):
@@ -277,11 +285,8 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         """
         if self.is_running:
             self._is_running = False
-        self.Counterfunc['ch1'].clear()
-        self.Counterfunc['ch2'].clear()
-        self.Counterfunc['ch3'].clear()
-        self.Counterfunc['ch4'].clear()
-        self.Counterfunc['detectorChans'].clear()
+        for chn in self.__active_channels:
+            self.Counterfunc[chn].clear
         self.Counterfunc = None
         return 0
 
@@ -451,11 +456,9 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
         @return tuple: data channel properties for all available channels with keys being the
                        channel names and values being the corresponding StreamChannel instances.
         """
-        # return (*(ch.copy() for ch in self._constraints.digital_channels),
-        #         *(ch.copy() for ch in self._constraints.analog_channels))
-        constr = self._constraints
-        return (*(ch.copy() for ch in constr.digital_channels if ch.name in self.__active_channels),
-                *(ch.copy() for ch in constr.analog_channels if ch.name in self.__active_channels))
+        return (*(ch.copy() for ch in self._constraints.digital_channels),
+                *(ch.copy() for ch in self._constraints.analog_channels))
+
 
     @property
     def available_samples(self):

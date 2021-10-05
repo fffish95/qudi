@@ -163,9 +163,9 @@ class TimeSeriesReaderLogic(GenericLogic):
     def _init_data_arrays(self):
         window_size = self.trace_window_size_samples
         self._trace_data = np.zeros(
-            [self.number_of_active_channels, window_size + self._moving_average_width // 2])
+            [self.number_of_active_channels, window_size + self.moving_average_width // 2])
         self._trace_data_averaged = np.zeros(
-            [len(self._averaged_channels), window_size - self._moving_average_width // 2])      #self.trace_window_size * data_rate - self._moving_average_width//2 > self.data_rate/ self._max_frame_rate
+            [len(self._averaged_channels), window_size - self.moving_average_width // 2])      #self.trace_window_size * data_rate - self._moving_average_width//2 > self.data_rate/ self._max_frame_rate
         self._trace_times = np.arange(window_size) / self.data_rate
         self._recorded_data = list()
         return
@@ -448,8 +448,9 @@ class TimeSeriesReaderLogic(GenericLogic):
                     self._averaged_channels = new_val
 
             # Apply settings to hardware if needed
-            self._streamer.configure(sample_rate=data_rate * self.oversampling_factor,
-                                     buffer_size=10000000,
+            self._streamer.configure(channel = active_ch,
+                                     sample_rate = data_rate * self.oversampling_factor,
+                                     buffer_size=2*self.trace_window_size_samples*self.number_of_active_channels+100,
                                      )
 
             # update actually set values
