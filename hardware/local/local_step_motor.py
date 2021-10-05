@@ -60,7 +60,8 @@ class LocalStepMotor(Base, MotorInterface):
     def move_rel(self, motor_channel=None, degree=None):
         if motor_channel is None:
             self.log.error('The motor channel is None.')
-        if motor_channel is None:
+            return -1
+        if degree is None:
             self.log.error('The degree is None.')
             return -1
 
@@ -70,7 +71,8 @@ class LocalStepMotor(Base, MotorInterface):
     def move_abs(self, motor_channel=None, degree=None):
         if motor_channel is None:
             self.log.error('The motor channel is None.')
-        if motor_channel is None:
+            return -1
+        if degree is None:
             self.log.error('The degree is None.')
             return -1
 
