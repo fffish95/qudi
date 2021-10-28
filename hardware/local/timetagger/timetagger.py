@@ -164,17 +164,16 @@ class TT(Base):
         return Combiner(self.tagger, channels)
 
 
-    def count_between_markers(self, click_channel, begin_channel, n_values, end_channel = None):
+    def count_between_markers(self, click_channel, begin_channel, n_values):
         """
         Counts events on a single channel within the time indicated by a “start” and “stop” signals.
         Compared with counter function, this function gives possibility to synchronize the measurements and actions.
         With end_channel on this function accumulate counts within a gate.
         """
         return CountBetweenMarkers(self.tagger,
-                                click_channel,
-                                begin_channel,
-                                end_channel,
-                                n_values)     
+                                click_channel=click_channel,
+                                begin_channel=begin_channel,
+                                n_values=n_values)     
 
 
 
