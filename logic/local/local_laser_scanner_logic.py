@@ -83,9 +83,7 @@ class LocalLaserScannerlogic(GenericLogic):
                 return -1
             self.module_state.lock()
             self._scanning_device.close_scanner_clock_task()
-            self._scanning_device.close_scanner_task()
             self._scanning_device.create_scanner_clock_task(clock_frequency = self._scanner_clock_frequency)
-            self._scanning_device.create_scanner_task()
             self.sigNextLine.emit()
             return 0
     
@@ -105,13 +103,13 @@ class LocalLaserScannerlogic(GenericLogic):
                 self.sigSwitchToCursorLoop.emit()
                 return
             time.sleep(0.1)
-            self.plot_y = self._scanning_device.scan_line([self.plot_x])[0]
+            self.plot_y = self._scanning_device.scan_line(line_path=[self.plot_x],pixel_clock=True)[0]
             if np.any(self.plot_y == -1):
                 self.stopScanLoopRequested = True
                 self.sigNextLine.emit()
                 return
                 
-            self._scanning_device.scan_line([self.return_x])
+            self._scanning_device.scan_line(line_path=[self.return_x], pixel_clock=False)
             self.plot_y_sum.append(self.plot_y)
             self.plot_y_average = np.mean(self.plot_y_sum, axis = 0)
 
