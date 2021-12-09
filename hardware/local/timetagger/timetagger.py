@@ -32,19 +32,24 @@ class TT(Base):
             bins_width: 2e10
             n_values: 100
         
-        
+        test_channels: [1,2, 4] #[1,2,3,4,5,6,7]#[1,2, 4, -4]    
+
+
         channels_params:
             ch1:
                 delay: 0
                 # trigger_level: 0
 
+        maxDumps: 1000000000
 
     """
     # config options
     _hist = ConfigOption('hist', False, missing='warn')
     _corr = ConfigOption('corr', False, missing='warn')
     _counter = ConfigOption('counter', False, missing='warn')
+    _test_channels = ConfigOption('test_channels', False, missing='info')
     _channels_params = ConfigOption('channels_params', False, missing='warn')
+    _maxDumps =  ConfigOption('maxDumps', 1000000000, missing='info')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -66,6 +71,12 @@ class TT(Base):
         except:
             self.log.error(f"\nCheck if the TimeTagger device is being used by another instance.")
             Exception(f"\nCheck if the TimeTagger device is being used by another instance.")
+
+        # set test signals
+        if self._test_channels:
+            for i in self._test_channels:
+                print(f"RUNNING CHANNEL {i} WITH TEST SIGNAL!")
+                self.tagger.setTestSignal(i, True)
 
         # set specified in the cfg channels params
         for channel, params in self._channels_params.items():
@@ -127,6 +138,13 @@ class TT(Base):
         if absolute value of the delay not exceed 2000000 ps, this delay will be applied onboard directly.
         """
         self.tagger.setInputDelay(delay=delay, channel=channel)
+
+    def dump(self, dumpPath, filtered_channels=None): 
+        if filtered_channels != None:
+            self.tagger.setConditionalFilter(filtered=[filtered_channels], trigger=self._combiner["channels"])
+        allChans = self._combiner["channels"].copy().append(filtered_channels)
+        return Dump(self.tagger, dumpPath, self._maxDumps,
+                                    [1,2,4])
 
         
     def countrate(self, channels=None):
