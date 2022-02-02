@@ -51,7 +51,7 @@ Check COPYRIGHT.txt for a list of authors and the git history for their individu
 ## conda with vscode
 conda init powershell
 in Windows PowerShell: Set-ExecutionPolicy Remotesigned
-conda conifg --append channels conda-forge
+conda config --append channels conda-forge
 conda update conda
 conda config --add channels conda-forge
 
@@ -63,7 +63,7 @@ conda env create -f conda-env-win10-64bit-qt5.yml
 ## install arduino-python3
 conda activate qudi
 python -m pip install --upgrade pip
-python -m install arduino-python3
+python -m pip install arduino-python3
 
 ## install pythonnet
 python -m pip uninstall clr
