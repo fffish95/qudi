@@ -79,3 +79,12 @@ git push origin master --force
 git reset --hard origin/master
 git fetch origin
 git checkout -b feature origin/feature
+
+## retain commit
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
