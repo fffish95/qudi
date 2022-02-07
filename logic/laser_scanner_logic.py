@@ -76,6 +76,7 @@ class LaserScannerLogic(GenericLogic):
         self.fit_y = []
         self.plot_x = []
         self.plot_y = []
+        self.plot_y_2 = []
         self.plot_y2 = []
 
     def on_activate(self):
@@ -83,6 +84,7 @@ class LaserScannerLogic(GenericLogic):
         """
         self._scanning_device = self.confocalscanner1()
         self._save_logic = self.savelogic()
+
 
         # Reads in the maximal scanning range. The unit of that scan range is
         # micrometer!
@@ -227,6 +229,7 @@ class LaserScannerLogic(GenericLogic):
         self.scan_matrix2 = np.zeros((self.number_of_repeats, scan_length))
         self.plot_x = np.linspace(self.scan_range[0], self.scan_range[1], scan_length)
         self.plot_y = np.zeros(scan_length)
+        self.plot_y_2 = np.zeros(scan_length)
         self.plot_y2 = np.zeros(scan_length)
         self.fit_x = np.linspace(self.scan_range[0], self.scan_range[1], scan_length)
         self.fit_y = np.zeros(scan_length)
@@ -334,13 +337,14 @@ class LaserScannerLogic(GenericLogic):
             self.plot_y += counts
             self._scan_counter_up += 1
             self.upwards_scan = False
+            self.plot_y_2 = counts
         else:
             counts = self._scan_line(self._downwards_ramp)
             self.scan_matrix2[self._scan_counter_down] = counts
             self.plot_y2 += counts
             self._scan_counter_down += 1
             self.upwards_scan = True
-
+        
         self.sigUpdatePlots.emit()
         self.sigScanNextLine.emit()
 
@@ -487,6 +491,7 @@ class LaserScannerLogic(GenericLogic):
         data = OrderedDict()
         data['frequency (Hz)'] = self.plot_x
         data['trace count data (counts/s)'] = self.plot_y
+        # data['trace count data (counts/s)'] = self.plot_y_2
         data['retrace count data (counts/s)'] = self.plot_y2
 
         data2 = OrderedDict()

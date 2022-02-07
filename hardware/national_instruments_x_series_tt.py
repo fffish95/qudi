@@ -1177,7 +1177,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
         self._line_length = length
         #Start instance of TimeTagger.CountBetweenMarkers with the correct channels. Does this every time a line is scanned
-        self.cbm = self._timetagger.count_between_markers(self._timetagger._combined_detectorChans.getChannel(), self._pixel_start_ch, self._line_length)
+        self.cbm = self._timetagger.count_between_markers(self._timetagger._combined_channels.getChannel(), self._pixel_start_ch, self._line_length)
 
         try:
             # Just a formal check whether length is not a too huge number
@@ -1554,7 +1554,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
         try:
             #Initialises the actual CountBetweenMarkers object with the correct length and channels. Does this for every pass.
-            self.cbm = self._timetagger.count_between_markers(self._timetagger._combined_detectorChans.getChannel(), self._pixel_start_ch, self._odmr_length)
+            self.cbm = self._timetagger.count_between_markers(self._timetagger._combined_channels.getChannel(), self._pixel_start_ch, self._odmr_length)
             # start the scanner counting task that acquires counts synchronously
             # if self._scanner_counter_channels:
             #     daq.DAQmxStartTask(self._scanner_counter_daq_tasks[0])
