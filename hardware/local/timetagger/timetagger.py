@@ -1,7 +1,7 @@
 
 from os.path import join, getsize, isfile
 import numpy as np
-from TimeTagger import createTimeTagger, Dump, Correlation, Histogram, Counter, CountBetweenMarkers, FileWriter, Countrate, Combiner, TimeDifferences
+from TimeTagger import createTimeTagger, freeTimeTagger, Dump, Correlation, Histogram, Counter, CountBetweenMarkers, FileWriter, Countrate, Combiner, TimeDifferences
 from core.configoption import ConfigOption
 from core.module import Base
 
@@ -61,13 +61,14 @@ class TT(Base):
         self.setup_TT()
 
     def on_deactivate(self):
-        pass
+        freeTimeTagger(self.tagger)
+        
 
     def setup_TT(self):
         try:
             self.tagger = createTimeTagger()
             # self.tagger.reset()
-            print(f"Tagger initialization successful: {self.tagger.getSerial()}")
+            self.log.info(f"Tagger initialization successful: {self.tagger.getSerial()}")
         except:
             self.log.error(f"\nCheck if the TimeTagger device is being used by another instance.")
             Exception(f"\nCheck if the TimeTagger device is being used by another instance.")
@@ -75,7 +76,7 @@ class TT(Base):
         # set test signals
         if self._test_channels:
             for i in self._test_channels:
-                print(f"RUNNING CHANNEL {i} WITH TEST SIGNAL!")
+                self.log.info(f"RUNNING CHANNEL {i} WITH TEST SIGNAL!")
                 self.tagger.setTestSignal(i, True)
 
         # set specified in the cfg channels params
