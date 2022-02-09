@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains the Qudi hardware LocalStepMotor class.
+This file contains the Qudi hardware StepMotor class.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,9 +24,9 @@ from core.module import Base
 from core.configoption import ConfigOption
 from interface.motor_interface import MotorInterface
 
-import visa
+import pyvisa as visa
 
-class LocalStepMotor(Base, MotorInterface):
+class StepMotor(Base, MotorInterface):
     """ Designed for driving a servo motor through Arduino.
 
     See [arduino-python3 Command API] & [arduino-libraries/Servo] for details.
@@ -34,7 +34,7 @@ class LocalStepMotor(Base, MotorInterface):
     Example config for copy-paste:
 
     StepMotor:
-        module.Class: 'local.local_step_motor.LocalStepMotor'
+        module.Class: 'local.step_motor.StepMotor'
         port:
             - 'COM4'
 

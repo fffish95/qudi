@@ -29,10 +29,10 @@ from qtpy import QtCore
 from qtpy import uic
 
 
-class LocalStepMotorMainWindow(QtWidgets.QMainWindow):
+class StepMotorMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir,'ui_localstepmotor.ui')
+        ui_file = os.path.join(this_dir,'ui_stepmotor.ui')
 
         super().__init__()
         uic.loadUi(ui_file, self)
@@ -40,15 +40,15 @@ class LocalStepMotorMainWindow(QtWidgets.QMainWindow):
 
 
 
-class LocalStepMotorGui(GUIBase):
-    localstepmotorlogic = Connector(interface='LocalStepMotorLogic')
+class StepMotorGui(GUIBase):
+    stepmotorlogic = Connector(interface='StepMotorLogic')
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
     def on_activate(self):
         
-        self._step_motor_logic = self.localstepmotorlogic()
+        self._step_motor_logic = self.stepmotorlogic()
     
-        self._mw= LocalStepMotorMainWindow()
+        self._mw= StepMotorMainWindow()
 
         self._mw.setDockNestingEnabled(True)
         self._motor_channel = None

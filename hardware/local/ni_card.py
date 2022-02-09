@@ -119,8 +119,8 @@ class NICard(Base):
     Example config for copy-paste:
 
     nicard:
-        module.Class: 'local_ni_card.NICard'
-        device_name: 'Dev1'
+        module.Class: 'local.ni_card.NICard'
+        device_name: 'Dev3'  
     """
 
     # config options
@@ -175,7 +175,7 @@ class NICard(Base):
 
 
     def on_deactivate(self):
-        self.terminate_all_tasks()
+        self.reset_hardware()
 
 
 
@@ -189,7 +189,7 @@ class NICard(Base):
             try:
                 task = ni.Task(taskname)
             except ni.DaqError:
-                self.log.error('Could not create task with name "{0}"'.format(taskname))
+                self.log.error('ao task with name "{0}" already exists'.format(taskname))
                 return -1
         if channels is None:
             self.log.error('Need channels to create the ao task.')
@@ -224,6 +224,26 @@ class NICard(Base):
         self._ao_task_handles.append(task)
         return task
 
+    def close_ao_task(self, taskname = None):
+        if taskname is None:
+            self.log.error('Need taskname to close the ao task.')
+            return -1        
+        else:
+            for i, task in enumerate(self._ao_task_handles):
+                if task.name == taskname:
+                    try:
+                        if not task.is_task_done():
+                            task.stop()
+                        task.close()
+                    except ni.DaqError:
+                        self.log.exception('Error while trying to terminate ao task {0}'.format(taskname))
+                        return -1
+                    finally:
+                        self._ao_task_handles.remove(task)
+                        return 0
+                elif i == len(self._ao_task_handles)-1:
+                    self.log.info('cant close ao task {0}, because does not exist'.format(taskname))
+                    return 0
 
     def create_ai_task(self, taskname = None, channels = None, voltage_ranges = None):
         if taskname is None:
@@ -234,7 +254,7 @@ class NICard(Base):
             try:
                 task = ni.Task(taskname)
             except ni.DaqError:
-                self.log.error('Could not create task with name "{0}"'.format(taskname))
+                self.log.error('ai task with name "{0}" already exists.'.format(taskname))
                 return -1
         if channels is None:
             self.log.error('Need channels to create the ai task.')
@@ -278,7 +298,7 @@ class NICard(Base):
             try:
                 task = ni.Task(taskname)
             except ni.DaqError:
-                self.log.error('Could not create task with name "{0}"'.format(taskname))
+                self.log.error('do task with name "{0}" already exists'.format(taskname))
                 return -1
         if channels is None:
             self.log.error('Need channels to create the do task.')
@@ -307,7 +327,7 @@ class NICard(Base):
             try:
                 task = ni.Task(taskname)
             except ni.DaqError:
-                self.log.error('Could not create task with name "{0}"'.format(taskname))
+                self.log.error('di task with name "{0}" already exists'.format(taskname))
                 return -1
         if channels is None:
             self.log.error('Need channels to create the di task.')
@@ -336,7 +356,7 @@ class NICard(Base):
             try:
                 task = ni.Task(taskname)
             except ni.DaqError:
-                self.log.error('Could not create task with name "{0}"'.format(taskname))
+                self.log.error('co task with name "{0}" already exists'.format(taskname))
                 return -1
         if channels is None:
             self.log.error('Need channels to create the co task.')
@@ -382,6 +402,27 @@ class NICard(Base):
         self._co_task_handles.append(task)
         return task
 
+    def close_co_task(self, taskname = None):
+        if taskname is None:
+            self.log.error('Need taskname to close the co task.')
+            return -1        
+        else:
+            for i, task in enumerate(self._co_task_handles):
+                if task.name == taskname:
+                    try:
+                        if not task.is_task_done():
+                            task.stop()
+                        task.close()
+                    except ni.DaqError:
+                        self.log.exception('Error while trying to terminate co task {0}'.format(taskname))
+                        return -1
+                    finally:
+                        self._co_task_handles.remove(task)
+                        return 0
+                elif i == len(self._co_task_handles)-1:
+                    self.log.info('cant close co task {0}, because does not exist'.format(taskname))
+                    return 0
+
 
     def create_ci_task(self, taskname = None, channels = None, count_ranges = None):
         """
@@ -395,7 +436,7 @@ class NICard(Base):
             try:
                 task = ni.Task(taskname)
             except ni.DaqError:
-                self.log.error('Could not create task with name "{0}"'.format(taskname))
+                self.log.error('ci task with name "{0}" already exists'.format(taskname))
                 return -1
         if channels is None:
             self.log.error('Need channels to create the ci task.')
@@ -603,12 +644,19 @@ class NICard(Base):
     def samp_timing_type(self, task, type):
         """
         'burst_handshake'
+            Determine sample timing using burst handshaking between the device and a peripheral device. 
         'change_detection'
+            Acquire samples when a change occurs in the state of one or more digital input lines. The lines must be contained within a digital input channel.
         'handshake'
+            Determine sample timing by using digital handshaking between the device and a peripheral device.
         'implicit'
+            Configure only the duration of the task.
         'on_demand'
+            Acquire or generate a sample on each read or write operation. This timing type is also referred to as static or software-timed.
         'pipelined_sample_clock'
+            Device acquires or generates samples on each sample clock edge, but does not respond to certain triggers until a few sample clock edges later. Pipelining allows higher data transfer rates at the cost of increased trigger response latency. Refer to the device documentation for information about which triggers pipelining affects. This timing type allows handshaking with some devices using the Pause trigger, the Ready for Transfer event, or the Data Active event. Refer to the device documentation for more information.
         'sample_clock'
+            Acquire or generate samples on the specified edge of the sample clock.
         """
         if isinstance(SampleTimingType[type.upper()], SampleTimingType):
             task.timing.samp_timing_type = SampleTimingType[type.upper()]
@@ -855,3 +903,4 @@ class NICard(Base):
             self.log.exception('Could not reset NI device {0}'.format(self._device_name))
             return -1
         return 0
+

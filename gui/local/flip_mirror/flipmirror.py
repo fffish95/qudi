@@ -30,10 +30,10 @@ from qtpy import uic
 import time
 
 
-class LocalFlipMirrorMainWindow(QtWidgets.QMainWindow):
+class FlipMirrorMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir,'ui_localflipmirror.ui')
+        ui_file = os.path.join(this_dir,'ui_flipmirror.ui')
 
         super().__init__()
         uic.loadUi(ui_file, self)
@@ -41,15 +41,15 @@ class LocalFlipMirrorMainWindow(QtWidgets.QMainWindow):
 
 
 
-class LocalFlipMirrorGui(GUIBase):
-    localflipmirrorlogic = Connector(interface='LocalFlipMirrorLogic')
+class FlipMirrorGui(GUIBase):
+    flipmirrorlogic = Connector(interface='FlipMirrorLogic')
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
     def on_activate(self):
         
-        self._flip_mirror_logic = self.localflipmirrorlogic()
+        self._flip_mirror_logic = self.flipmirrorlogic()
     
-        self._mw= LocalFlipMirrorMainWindow()
+        self._mw= FlipMirrorMainWindow()
 
         self._mw.setDockNestingEnabled(True)
 

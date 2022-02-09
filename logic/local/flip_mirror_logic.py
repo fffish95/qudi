@@ -28,7 +28,7 @@ from qtpy import QtCore
 import time
 import numpy as np
 
-class LocalFlipMirrorLogic(GenericLogic):
+class FlipMirrorLogic(GenericLogic):
     servomotor1 = Connector(interface='MotorInterface')
 
     sigOntoOffProcessing = QtCore.Signal()
