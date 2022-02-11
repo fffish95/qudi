@@ -20,14 +20,18 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+from fileinput import filename
 import numpy as np
 import os
 import pyqtgraph as pg
 import time
 
+from core import config
 from core.connector import Connector
 from core.configoption import ConfigOption
 from core.statusvariable import StatusVar
+from core.util.modules import get_main_dir
+from collections import OrderedDict
 from qtwidgets.scan_plotwidget import ScanImageItem
 from gui.guibase import GUIBase
 from gui.guiutils import ColorBar
@@ -520,6 +524,8 @@ class ConfocalGui(GUIBase):
         self._mw.action_optimizer_settings.triggered.connect(self.menu_optimizer_settings)
         self._mw.actionSave_XY_Scan.triggered.connect(self.save_xy_scan_data)
         self._mw.actionSave_Depth_Scan.triggered.connect(self.save_depth_scan_data)
+        self._mw.actionSave_configuration.triggered.connect(self.save_configuration)
+        self._mw.actionLoad_configuration.triggered.connect(self.load_configuration)
 
         # Configure and connect the zoom actions with the desired buttons and
         # functions if
@@ -1601,6 +1607,44 @@ class ConfocalGui(GUIBase):
             time.strftime('%Y%m%d-%H%M-%S_confocal_xy_scan_raw_pixel_image'))
         if self._sd.save_purePNG_checkBox.isChecked():
             self.xy_image.save(filename + '_raw.png')
+    
+    def save_configuration(self):
+        """ Save current statusvariable to the file"""
+        classname = self.__class__.__name__
+        defaultconfigpath = os.path.join(get_main_dir(),'config','local','{0}'.format(classname))
+        filename = QtWidgets.QFileDialog.getSaveFileName(
+            self._mw,
+            'Save Configuration',
+            defaultconfigpath,
+            'Configuration files (*.cfg)')[0]
+
+        if filename != '':
+            self._scanning_logic.save_history_config()
+            variables = self._scanning_logic.getStatusVariables()
+            try:
+                config.save(filename, variables)
+            except:
+                print(variables)
+                self.log.exception('Failed to save status variables to {0}'.format(filename))
+
+    def load_configuration(self):
+        """ Load statusvariable to the program"""
+        try:
+            classname = self.__class__.__name__
+            defaultconfigpath = os.path.join(get_main_dir(),'config','local','{0}'.format(classname))
+            filename = QtWidgets.QFileDialog.getOpenFileName(
+                self._mw,
+                'Load Configuration',
+                defaultconfigpath,
+                'Configuration files (*.cfg)')[0]
+            if os.path.isfile(filename):
+                variables = config.load(filename)
+            else:
+                variables = OrderedDict()
+            self._scanning_logic.setStatusVariables(variables)
+            self._scanning_logic.restore_history_config()
+        except:
+            self.log.exception('Failed to load status variables from {0}'.format(filename))
 
     def save_xy_scan_image(self):
         """ Save the image and according to that the data.

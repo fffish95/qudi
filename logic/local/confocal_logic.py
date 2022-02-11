@@ -97,11 +97,6 @@ class ConfocalHistoryEntry(QtCore.QObject):
         self.point1 = np.array((0, 0, 0))
         self.point2 = np.array((0, 0, 0))
         self.point3 = np.array((0, 0, 0))
-        self.tilt_correction = False
-        self.tilt_slope_x = 0
-        self.tilt_slope_y = 0
-        self.tilt_reference_x = 0
-        self.tilt_reference_y = 0
 
     def restore(self, confocal):
         """ Write data back into confocal logic and pull all the necessary strings """
@@ -185,7 +180,7 @@ class ConfocalHistoryEntry(QtCore.QObject):
         serialized['xy_resolution'] = self.xy_resolution
         serialized['z_resolution'] = self.z_resolution
         serialized['depth_img_is_xz'] = self.depth_img_is_xz
-        serialized['depth_dir_is_xz'] = self.depth_scan_dir_is_xz
+        serialized['depth_scan_dir_is_xz'] = self.depth_scan_dir_is_xz
         serialized['xy_line_position'] = self.xy_line_position
         serialized['depth_line_position'] = self.depth_line_position
         serialized['xy_scan_cont'] = self.xy_scan_continuable
@@ -220,8 +215,8 @@ class ConfocalHistoryEntry(QtCore.QObject):
             self.z_resolution = serialized['z_resolution']
         if 'depth_img_is_xz' in serialized:
             self.depth_img_is_xz = serialized['depth_img_is_xz']
-        if 'depth_dir_is_xz' in serialized:
-            self.depth_scan_dir_is_xz = serialized['depth_dir_is_xz']
+        if 'depth_scan_dir_is_xz' in serialized:
+            self.depth_scan_dir_is_xz = serialized['depth_scan_dir_is_xz']
         if 'tilt_correction' in serialized:
             self.tilt_correction = serialized['tilt_correction']
         if 'tilt_reference' in serialized and len(serialized['tilt_reference']) == 2:
@@ -311,33 +306,8 @@ class ConfocalLogic(GenericLogic):
         self.y_range = self._scanning_device.get_position_range()[1]
         self.z_range = self._scanning_device.get_position_range()[2]
 
-        # restore here ...
-        self.history = []
-        for i in reversed(range(1, self.max_history_length)):
-            try:
-                new_history_item = ConfocalHistoryEntry(self)
-                new_history_item.deserialize(
-                    self._statusVariables['history_{0}'.format(i)])
-                self.history.append(new_history_item)
-            except KeyError:
-                pass
-            except OldConfigFileError:
-                self.log.warning(
-                    'Old style config file detected. History {0} ignored.'.format(i))
-            except:
-                self.log.warning(
-                        'Restoring history {0} failed.'.format(i))
-        try:
-            new_state = ConfocalHistoryEntry(self)
-            new_state.deserialize(self._statusVariables['history_0'])
-            new_state.restore(self)
-        except:
-            new_state = ConfocalHistoryEntry(self)
-            new_state.restore(self)
-        finally:
-            self.history.append(new_state)
-
-        self.history_index = len(self.history) - 1
+        # restore history in StatusVariables
+        self.restore_history_config()
 
         # Sets connections between signals and functions
         self.signal_scan_lines_next.connect(self._scan_line, QtCore.Qt.QueuedConnection)
@@ -373,6 +343,36 @@ class ConfocalLogic(GenericLogic):
         for state in reversed(self.history):
             self._statusVariables['history_{0}'.format(histindex)] = state.serialize()
             histindex += 1
+
+    def restore_history_config(self):
+        # restore here ...
+        self.history = []
+        for i in reversed(range(1, self.max_history_length)):
+            try:
+                new_history_item = ConfocalHistoryEntry(self)
+                new_history_item.deserialize(
+                    self._statusVariables['history_{0}'.format(i)])
+                self.history.append(new_history_item)
+            except KeyError:
+                pass
+            except OldConfigFileError:
+                self.log.warning(
+                    'Old style config file detected. History {0} ignored.'.format(i))
+            except:
+                self.log.warning(
+                        'Restoring history {0} failed.'.format(i))
+        try:
+            new_state = ConfocalHistoryEntry(self)
+            new_state.deserialize(self._statusVariables['history_0'])
+            new_state.restore(self)
+        except:
+            new_state = ConfocalHistoryEntry(self)
+            new_state.restore(self)
+        finally:
+            self.history.append(new_state)
+
+        self.history_index = len(self.history) - 1
+
 
     def switch_hardware(self, to_on=False):
         """ Switches the Hardware off or on.
@@ -611,7 +611,6 @@ class ConfocalLogic(GenericLogic):
 
     def continue_scanner(self):
         """Continue the scanning procedure
-
         @return int: error code (0:OK, -1:error)
         """
         self.module_state.lock()
@@ -749,6 +748,7 @@ class ConfocalLogic(GenericLogic):
                 if len(self.history) > self.max_history_length:
                     self.history.pop(0)
                 self.history_index = len(self.history) - 1
+                self.signal_history_event.emit()
                 return
 
         image = self.depth_image if self._zscan else self.xy_image

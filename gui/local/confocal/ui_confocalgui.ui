@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>1261</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -38,6 +38,7 @@
     <addaction name="actionSave_XY_Scan"/>
     <addaction name="actionSave_Depth_Scan"/>
     <addaction name="actionSave_configuration"/>
+    <addaction name="actionLoad_configuration"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
    </widget>
@@ -2310,6 +2311,15 @@
    </property>
    <property name="toolTip">
     <string>Blink correction</string>
+   </property>
+  </action>
+  <action name="actionLoad_configuration">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../../artwork/icons/oxygen/22x22/document-open.png</normaloff>../../../artwork/icons/oxygen/22x22/document-open.png</iconset>
+   </property>
+   <property name="text">
+    <string>Load configuration</string>
    </property>
   </action>
  </widget>
