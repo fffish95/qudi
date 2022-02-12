@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from xml.sax.handler import all_features
 import numpy as np
 from enum import Enum 
 import time
@@ -66,8 +67,9 @@ class NITTConfocalScanner(Base):
     def on_activate(self):
         self._nicard = self.nicard()
         self._tt = self.timetagger()
+        self._scanner_task = None
         self._scanner_clock_task = None
-        self._scanner_ao_task = None
+        self._scanner_counter_tasks = list()
         self._line_length = None
         self._current_position = np.zeros(len(self._scanner_ao_channels))
         
@@ -81,7 +83,7 @@ class NITTConfocalScanner(Base):
 
         # channels to show in the image channel combobox
         self._timetagger_scanner_counter_channels = self._tt._detector_channels.copy()
-        self._timetagger_scanner_counter_channels.append('all')
+        self._timetagger_scanner_counter_channels.insert(0,'all')
 
         self._scanner_task = self._nicard.create_ao_task(taskname = 'sps_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
 
@@ -289,7 +291,13 @@ class NITTConfocalScanner(Base):
         self._line_length = length
 
         #Start instance of TimeTagger.CountBetweenMarkers with the correct channels. Does this every time a line is scanned
-        self.cbm = self._tt.count_between_markers(click_channel = self._tt._combined_detectorChans.getChannel(), begin_channel = self._tt.channel_codes[self._timetagger_cbm_begin_channel[0]], n_values=self._line_length)
+        self._scanner_counter_tasks = list()
+        for i,ch in enumerate(self._timetagger_scanner_counter_channels):
+            if ch == 'all':
+                self._scanner_counter_tasks.append(self._tt.count_between_markers(click_channel = self._tt._combined_detectorChans.getChannel(), begin_channel = self._tt.channel_codes[self._timetagger_cbm_begin_channel[0]], n_values=self._line_length))
+            else:
+                self._scanner_counter_tasks.append(self._tt.count_between_markers(click_channel = self._tt.channel_codes[ch], begin_channel = self._tt.channel_codes[self._timetagger_cbm_begin_channel[0]], n_values=self._line_length))
+
 
         try:
             # Just a formal check whether length is not a too huge number
@@ -349,7 +357,9 @@ class NITTConfocalScanner(Base):
             self._scanner_clock_task.start()
 
             # wait for the scanner counter to finish
-            self.cbm.waitUntilFinished(timeout = 10 * 2 * self._line_length)
+            for i, ch in enumerate(self._scanner_counter_tasks):
+                self._scanner_counter_tasks[i].waitUntilFinished(timeout = 10 * 2 * self._line_length)
+            
 
             # wait for the scanner clock to finish
             self._scanner_clock_task.wait_until_done(timeout = 10 * 2 * self._line_length)
@@ -363,13 +373,12 @@ class NITTConfocalScanner(Base):
             if pixel_clock and self._pixel_clock_channel is not None:
                 self._nicard.disconnect_ctr_to_pfi(self._scanner_clock_channel[0], self._pixel_clock_channel[0])
 
-
-            counts = np.nan_to_num(self.cbm.getData())
-            data = np.reshape(counts,(1, self._line_length))
-            all_data = data * self._scanner_clock_frequency
-
-            # reset measurement
-            self.cbm.clear()
+            all_data = np.full(
+                (len(self.get_scanner_count_channels()), self._line_length), 2, dtype=np.float64)
+            for i, task in enumerate(self._scanner_counter_tasks):
+                counts = np.nan_to_num(task.getData())
+                data = np.reshape(counts,(1, self._line_length))
+                all_data[i] = data * self._scanner_clock_frequency
 
             # update the scanner position instance variable
             self._current_position = np.array(line_path[:, -1])
