@@ -44,9 +44,6 @@ class NITTConfocalScanner(Base):
             - 'ctr0'
         pixel_clock_channel:
             - 'pfi0'
-        timetagger_scanner_counter_channels:
-            - 'ch1'
-            - 'ch2'
         timetagger_cbm_begin_channel:
             - 'ch8'
 
@@ -62,7 +59,6 @@ class NITTConfocalScanner(Base):
     _scanner_clock_channel = ConfigOption('scanner_clock_channel', missing='error') 
     _pixel_clock_channel = ConfigOption('pixel_clock_channel', None)
     _timetagger_cbm_begin_channel = ConfigOption('timetagger_cbm_begin_channel', missing= 'error')
-    _timetagger_scanner_counter_channels = ConfigOption('timetagger_scanner_counter_channels', missing= 'error')
     
 
 
@@ -73,7 +69,6 @@ class NITTConfocalScanner(Base):
         self._scanner_clock_task = None
         self._scanner_ao_task = None
         self._line_length = None
-        self._timetagger_detectorChannels = []
         self._current_position = np.zeros(len(self._scanner_ao_channels))
         
         if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
@@ -83,10 +78,10 @@ class NITTConfocalScanner(Base):
         if len(self._scanner_ao_channels) != len(self._scanner_position_ranges):
             self.log.error(
                 'Specify as many scanner_position_ranges as scanner_ao_channels!')
-        
-        for i in range(len(self._timetagger_scanner_counter_channels)):
-            self._timetagger_detectorChannels.append(self._tt.channel_codes[self._timetagger_scanner_counter_channels[i]])
-        self._tt._combined_detectorChans = self._tt.combiner(self._timetagger_detectorChannels) 
+
+        # channels to show in the image channel combobox
+        self._timetagger_scanner_counter_channels = self._tt._detector_channels.copy()
+        self._timetagger_scanner_counter_channels.append('all')
 
         self._scanner_task = self._nicard.create_ao_task(taskname = 'sps_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
 

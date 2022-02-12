@@ -217,6 +217,16 @@ class ConfocalHistoryEntry(QtCore.QObject):
             self.depth_img_is_xz = serialized['depth_img_is_xz']
         if 'depth_scan_dir_is_xz' in serialized:
             self.depth_scan_dir_is_xz = serialized['depth_scan_dir_is_xz']
+        if 'xy_line_position' in serialized:
+            self.xy_line_position = serialized['xy_line_position']
+        if 'depth_line_position' in serialized:
+            self.depth_line_position = serialized['depth_line_position']
+        if 'xy_scan_cont' in serialized:
+            self.xy_scan_continuable = serialized['xy_scan_cont']
+        if 'depth_scan_cont' in serialized:
+            self.depth_scan_continuable = serialized['depth_scan_cont']
+        if 'scan_counter' in serialized:
+            self.scan_counter = serialized['scan_counter']
         if 'tilt_correction' in serialized:
             self.tilt_correction = serialized['tilt_correction']
         if 'tilt_reference' in serialized and len(serialized['tilt_reference']) == 2:
@@ -294,6 +304,7 @@ class ConfocalLogic(GenericLogic):
         self.depth_scan_dir_is_xz = True
         self.depth_img_is_xz = True
         self.permanent_scan = False
+        self._move_to_start = True
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -307,7 +318,7 @@ class ConfocalLogic(GenericLogic):
         self.z_range = self._scanning_device.get_position_range()[2]
 
         # restore history in StatusVariables
-        self.restore_history_config()
+        self.load_history_config()
 
         # Sets connections between signals and functions
         self.signal_scan_lines_next.connect(self._scan_line, QtCore.Qt.QueuedConnection)
@@ -316,10 +327,6 @@ class ConfocalLogic(GenericLogic):
 
         self._signal_save_xy.connect(self._save_xy_data, QtCore.Qt.QueuedConnection)
         self._signal_save_depth.connect(self._save_depth_data, QtCore.Qt.QueuedConnection)
-
-
-
-        self._change_position('activation')
 
     def on_deactivate(self):
         """ Reverse steps of activation
@@ -344,7 +351,7 @@ class ConfocalLogic(GenericLogic):
             self._statusVariables['history_{0}'.format(histindex)] = state.serialize()
             histindex += 1
 
-    def restore_history_config(self):
+    def load_history_config(self):
         # restore here ...
         self.history = []
         for i in reversed(range(1, self.max_history_length)):
@@ -372,6 +379,15 @@ class ConfocalLogic(GenericLogic):
             self.history.append(new_state)
 
         self.history_index = len(self.history) - 1
+        self.history[self.history_index].restore(self)
+        self.signal_xy_image_updated.emit()
+        self.signal_depth_image_updated.emit()
+        self.signal_tilt_correction_update.emit()
+        self.signal_tilt_correction_active.emit(self._scanning_device.tiltcorrection)
+        self._change_position('history')
+        self.signal_change_position.emit('history')
+        self.signal_history_event.emit()
+
 
 
     def switch_hardware(self, to_on=False):
@@ -386,7 +402,7 @@ class ConfocalLogic(GenericLogic):
         else:
             return self._scanning_device.reset_hardware()
 
-    def set_clock_frequency(self, clock_frequency):
+    def set_frequency(self, clock_frequency):
         """Sets the frequency of the clock
 
         @param int clock_frequency: desired frequency of the clock
@@ -396,6 +412,7 @@ class ConfocalLogic(GenericLogic):
         self._clock_frequency = int(clock_frequency)
         #checks if scanner is still running
         if self.module_state() == 'locked':
+            self.log.error('A Scanner is already running, close this one first.')
             return -1
         else:
             return 0
@@ -407,16 +424,13 @@ class ConfocalLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO: this is dirty, but it works for now
-#        while self.module_state() == 'locked':
-#            time.sleep(0.01)
         self._scan_counter = 0
         self._zscan = zscan
         if self._zscan:
             self._zscan_continuable = True
         else:
             self._xyscan_continuable = True
-
+        self._move_to_start = True
         self.signal_start_scanning.emit(tag)
         return 0
 
@@ -430,6 +444,7 @@ class ConfocalLogic(GenericLogic):
             self._scan_counter = self._depth_line_pos
         else:
             self._scan_counter = self._xy_line_pos
+        self._move_to_start = True
         self.signal_continue_scanning.emit(tag)
         return 0
 
@@ -658,9 +673,10 @@ class ConfocalLogic(GenericLogic):
         return 0
 
     def set_position(self, tag, x=None, y=None, z=None, a=None):
-        """Forwarding the desired new position from the GUI to the scanning device.
+        """Update the current position to the destination position, and call self._change_position
+        to let the hardware move from old position to the current position in logic.
 
-        @param string tag: TODO
+        @param string tag: determines if it's needed to change crosshair position in GUI.
 
         @param float x: if defined, changes to postion in x-direction (microns)
         @param float y: if defined, changes to postion in y-direction (microns)
@@ -690,18 +706,21 @@ class ConfocalLogic(GenericLogic):
             return 0
 
     def _change_position(self, tag):
-        """ Threaded method to change the hardware position.
+        """ Let hardware move from old postion to the current position in logic.
 
         @return int: error code (0:OK, -1:error)
         """
-        ch_array = ['x', 'y', 'z', 'a']
+        old_pos_array = self._scanning_device.get_scanner_position()        
         pos_array = [self._current_x, self._current_y, self._current_z, self._current_a]
-        pos_dict = {}
+        move_line = []
+        rs = self.return_slowness
 
         for i, ch in enumerate(self.get_scanner_axes()):
-            pos_dict[ch_array[i]] = pos_array[i]
-
-        self._scanning_device.scanner_set_position(**pos_dict)
+            move_line.append(np.linspace(old_pos_array[i], pos_array[i], rs))
+        
+        _move_line = np.transpose(move_line)
+        for i, pos in enumerate(_move_line):
+            self._scanning_device.scanner_set_position(*pos)
         return 0
 
     def get_position(self):
@@ -756,7 +775,7 @@ class ConfocalLogic(GenericLogic):
         s_ch = len(self.get_scanner_count_channels())
 
         try:
-            if self._scan_counter == 0:
+            if self._move_to_start:
                 # make a line from the current cursor position to
                 # the starting position of the first scan line of the scan
                 rs = self.return_slowness
@@ -774,6 +793,7 @@ class ConfocalLogic(GenericLogic):
                         [lsx, lsy, lsz, np.ones(lsx.shape) * self._current_a])
                 # move to the start position of the scan, counts are thrown away
                 start_line_counts = self._scanning_device.scan_line(start_line)
+                self._move_to_start = False
                 if np.any(start_line_counts == -1):
                     self.stopRequested = True
                     self.signal_scan_lines_next.emit()
@@ -862,6 +882,7 @@ class ConfocalLogic(GenericLogic):
                         self._xyscan_continuable = False
                 else:
                     self._scan_counter = 0
+                    self._move_to_start = True
 
             self.signal_scan_lines_next.emit()
         except:
@@ -895,7 +916,7 @@ class ConfocalLogic(GenericLogic):
         """ Execute save operation. Slot for _signal_save_xy.
         """
         self.signal_save_started.emit()
-        filepath = self._save_logic.get_path_for_module('Confocal')
+        filepath = self._save_logic.get_path_for_module('sps_confocal')
         timestamp = datetime.datetime.now()
         # Prepare the metadata parameters (common to both saved files):
         parameters = OrderedDict()
@@ -914,8 +935,6 @@ class ConfocalLogic(GenericLogic):
         parameters['Clock frequency of scanner (Hz)'] = self._clock_frequency
         parameters['Return Slowness (Steps during retrace line)'] = self.return_slowness
 
-        # Prepare a figure to be saved
-        figure_data = self.xy_image[:, :, 3]
         image_extent = [self.image_x_range[0],
                         self.image_x_range[1],
                         self.image_y_range[0],
@@ -997,7 +1016,7 @@ class ConfocalLogic(GenericLogic):
     def _save_depth_data(self, colorscale_range=None, percentile_range=None):
         """ Execute save operation. Slot for _signal_save_depth. """
         self.signal_save_started.emit()
-        filepath = self._save_logic.get_path_for_module('Confocal')
+        filepath = self._save_logic.get_path_for_module('sps_confocal')
         timestamp = datetime.datetime.now()
         # Prepare the metadata parameters (common to both saved files):
         parameters = OrderedDict()

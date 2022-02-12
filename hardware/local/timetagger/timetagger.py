@@ -47,6 +47,7 @@ class TT(Base):
     _test_channels = ConfigOption('test_channels', False, missing='info')
     _channels_params = ConfigOption('channels_params', False, missing='warn')
     _maxDumps =  ConfigOption('maxDumps', 1000000000, missing='info')
+    _detector_channels = ConfigOption('detector_channels', missing = 'error')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -84,7 +85,10 @@ class TT(Base):
                 self.tagger.setTriggerLevel(channel, params['triggerLevel'])
 
         #Create combine channels:
-        self._combined_detectorChans = self.combiner(self._counter["channels"])     # create virtual channel that combines time_tags from apdChans. 
+        self._detector_channels_array = []
+        for i in range(len(self._detector_channels)):
+            self._detector_channels_array.append(self.channel_codes[self._detector_channels[i]])
+        self._combined_detectorChans = self.combiner(self._detector_channels_array)      # create virtual channel that combines time_tags from apdChans. 
 
 
 

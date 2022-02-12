@@ -84,7 +84,7 @@ class ConfocalSettingDialog(QtWidgets.QDialog):
 
 
 class OptimizerSettingDialog(QtWidgets.QDialog):
-    """ User configurable settings for the optimizer embedded in cofocal gui"""
+    """ User configurable settings for the optimizer embedded in confocal gui"""
 
     def __init__(self):
         # Get the path to the *.ui file
@@ -1601,7 +1601,7 @@ class ConfocalGui(GUIBase):
         self._scanning_logic.save_xy_data(colorscale_range=cb_range, percentile_range=pcile_range, block=False)
 
         # TODO: find a way to produce raw image in savelogic.  For now it is saved here.
-        filepath = self._save_logic.get_path_for_module(module_name='Confocal')
+        filepath = self._save_logic.get_path_for_module(module_name='sps_confocal')
         filename = os.path.join(
             filepath,
             time.strftime('%Y%m%d-%H%M-%S_confocal_xy_scan_raw_pixel_image'))
@@ -1610,8 +1610,7 @@ class ConfocalGui(GUIBase):
     
     def save_configuration(self):
         """ Save current statusvariable to the file"""
-        classname = self.__class__.__name__
-        defaultconfigpath = os.path.join(get_main_dir(),'config','local','{0}'.format(classname))
+        defaultconfigpath = self._save_logic.get_path_for_module(module_name='sps_confocal_cfg')
         filename = QtWidgets.QFileDialog.getSaveFileName(
             self._mw,
             'Save Configuration',
@@ -1630,8 +1629,7 @@ class ConfocalGui(GUIBase):
     def load_configuration(self):
         """ Load statusvariable to the program"""
         try:
-            classname = self.__class__.__name__
-            defaultconfigpath = os.path.join(get_main_dir(),'config','local','{0}'.format(classname))
+            defaultconfigpath = self._save_logic.get_path_for_module(module_name='sps_confocal_cfg')
             filename = QtWidgets.QFileDialog.getOpenFileName(
                 self._mw,
                 'Load Configuration',
@@ -1642,7 +1640,7 @@ class ConfocalGui(GUIBase):
             else:
                 variables = OrderedDict()
             self._scanning_logic.setStatusVariables(variables)
-            self._scanning_logic.restore_history_config()
+            self._scanning_logic.load_history_config()
         except:
             self.log.exception('Failed to load status variables from {0}'.format(filename))
 
@@ -1671,7 +1669,7 @@ class ConfocalGui(GUIBase):
         self._scanning_logic.save_depth_data(colorscale_range=cb_range, percentile_range=pcile_range, block=False)
 
         # TODO: find a way to produce raw image in savelogic.  For now it is saved here.
-        filepath = self._save_logic.get_path_for_module(module_name='Confocal')
+        filepath = self._save_logic.get_path_for_module(module_name='sps_confocal')
         filename = os.path.join(
             filepath,
             time.strftime('%Y%m%d-%H%M-%S_confocal_depth_scan_raw_pixel_image'))
