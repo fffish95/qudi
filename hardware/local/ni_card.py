@@ -242,7 +242,7 @@ class NICard(Base):
                         self._ao_task_handles.remove(task)
                         return 0
                 elif i == len(self._ao_task_handles)-1:
-                    self.log.info('cant close ao task {0}, because does not exist'.format(taskname))
+                    self.log.info('cant close ao task {0}, because it does not exist'.format(taskname))
                     return 0
 
     def create_ai_task(self, taskname = None, channels = None, voltage_ranges = None):
@@ -287,6 +287,27 @@ class NICard(Base):
             return -1
         self._ai_task_handles.append(task)
         return task
+
+    def close_ai_task(self, taskname = None):
+        if taskname is None:
+            self.log.error('Need taskname to close the ai task.')
+            return -1        
+        else:
+            for i, task in enumerate(self._ai_task_handles):
+                if task.name == taskname:
+                    try:
+                        if not task.is_task_done():
+                            task.stop()
+                        task.close()
+                    except ni.DaqError:
+                        self.log.exception('Error while trying to terminate ai task {0}'.format(taskname))
+                        return -1
+                    finally:
+                        self._ai_task_handles.remove(task)
+                        return 0
+                elif i == len(self._ai_task_handles)-1:
+                    self.log.info('cant close ai task {0}, because it does not exist'.format(taskname))
+                    return 0
 
 
     def create_do_task(self, taskname = None, channels = None):
@@ -420,7 +441,7 @@ class NICard(Base):
                         self._co_task_handles.remove(task)
                         return 0
                 elif i == len(self._co_task_handles)-1:
-                    self.log.info('cant close co task {0}, because does not exist'.format(taskname))
+                    self.log.info('cant close co task {0}, because it does not exist'.format(taskname))
                     return 0
 
 

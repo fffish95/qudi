@@ -957,7 +957,7 @@ class ConfocalLogic(GenericLogic):
             image_data['Confocal pure XY scan image data without axis.\n'
                 'The upper left entry represents the signal at the upper left pixel position.\n'
                 'A pixel-line in the image corresponds to a row '
-                'of entries where the Signal is in counts/s:'] = self.xy_image[:, :, 3 + n]
+                'of entries where the Signal is in counts/s or V:'] = self.xy_image[:, :, 3 + n]
 
             filelabel = 'confocal_xy_image_{0}'.format(ch.replace('/', ''))
             self._save_logic.save_data(image_data,
@@ -976,7 +976,12 @@ class ConfocalLogic(GenericLogic):
         data['z position (m)'] = self.xy_image[:, :, 2].flatten()
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
-            data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+            if ch.lower().startswith('ch') or ch.lower().startswith('all'):
+                data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+            elif ch.lower().startswith('ai'):
+                data['signal {0} (V)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+            else:
+                data['signal {0} (a.u.)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'confocal_xy_data'
@@ -1066,7 +1071,7 @@ class ConfocalLogic(GenericLogic):
             image_data['Confocal pure depth scan image data without axis.\n'
                 'The upper left entry represents the signal at the upper left pixel position.\n'
                 'A pixel-line in the image corresponds to a row in '
-                'of entries where the Signal is in counts/s:'] = self.depth_image[:, :, 3 + n]
+                'of entries where the Signal is in counts/s or V:'] = self.depth_image[:, :, 3 + n]
 
             filelabel = 'confocal_depth_image_{0}'.format(ch.replace('/', ''))
             self._save_logic.save_data(image_data,
@@ -1085,7 +1090,12 @@ class ConfocalLogic(GenericLogic):
         data['z position (m)'] = self.depth_image[:, :, 2].flatten()
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
-            data['count rate {0} (Hz)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
+            if ch.lower().startswith('ch') or ch.lower().startswith('all'):
+                data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+            elif ch.lower().startswith('ai'):
+                data['signal {0} (V)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+            else:
+                data['signal {0} (a.u.)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'confocal_depth_data'
