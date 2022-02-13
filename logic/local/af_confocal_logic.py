@@ -265,6 +265,7 @@ class ConfocalLogic(GenericLogic):
     # status vars
     _clock_frequency = StatusVar('clock_frequency', 500)
     return_slowness = StatusVar(default=50)
+    goto_speed = StatusVar(default=20)
     max_history_length = StatusVar(default=10)
 
     # signals
@@ -713,10 +714,10 @@ class ConfocalLogic(GenericLogic):
         old_pos_array = self._scanning_device.get_scanner_position()        
         pos_array = [self._current_x, self._current_y, self._current_z, self._current_a]
         move_line = []
-        rs = self.return_slowness
+        gs = self.goto_speed
 
         for i, ch in enumerate(self.get_scanner_axes()):
-            move_line.append(np.linspace(old_pos_array[i], pos_array[i], rs))
+            move_line.append(np.linspace(old_pos_array[i], pos_array[i], gs))
         
         _move_line = np.transpose(move_line)
         for i, pos in enumerate(_move_line):
@@ -778,10 +779,10 @@ class ConfocalLogic(GenericLogic):
             if self._move_to_start:
                 # make a line from the current cursor position to
                 # the starting position of the first scan line of the scan
-                rs = self.return_slowness
-                lsx = np.linspace(self._current_x, image[self._scan_counter, 0, 0], rs)
-                lsy = np.linspace(self._current_y, image[self._scan_counter, 0, 1], rs)
-                lsz = np.linspace(self._current_z, image[self._scan_counter, 0, 2], rs)
+                gs = self.goto_speed
+                lsx = np.linspace(self._current_x, image[self._scan_counter, 0, 0], gs)
+                lsy = np.linspace(self._current_y, image[self._scan_counter, 0, 1], gs)
+                lsz = np.linspace(self._current_z, image[self._scan_counter, 0, 2], gs)
 
                 
 

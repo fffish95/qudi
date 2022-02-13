@@ -35,14 +35,14 @@ from qtpy import uic
 import time
 
 
-class VoltScanMainWindow(QtWidgets.QMainWindow):
+class LaserScanMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
         ui_file = os.path.join(this_dir, 'ui_laserscannergui.ui')
 
         # Load it
-        super(VoltScanMainWindow, self).__init__()
+        super(LaserScanMainWindow, self).__init__()
         uic.loadUi(ui_file, self)
         self.show()
 
