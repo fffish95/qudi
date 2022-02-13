@@ -916,7 +916,7 @@ class ConfocalLogic(GenericLogic):
         """ Execute save operation. Slot for _signal_save_xy.
         """
         self.signal_save_started.emit()
-        filepath = self._save_logic.get_path_for_module('sps_confocal')
+        filepath = self._save_logic.get_path_for_module('af_confocal')
         timestamp = datetime.datetime.now()
         # Prepare the metadata parameters (common to both saved files):
         parameters = OrderedDict()
@@ -957,7 +957,7 @@ class ConfocalLogic(GenericLogic):
             image_data['Confocal pure XY scan image data without axis.\n'
                 'The upper left entry represents the signal at the upper left pixel position.\n'
                 'A pixel-line in the image corresponds to a row '
-                'of entries where the Signal is in counts/s:'] = self.xy_image[:, :, 3 + n]
+                'of entries where the Signal is in V:'] = self.xy_image[:, :, 3 + n]
 
             filelabel = 'confocal_xy_image_{0}'.format(ch.replace('/', ''))
             self._save_logic.save_data(image_data,
@@ -1021,7 +1021,7 @@ class ConfocalLogic(GenericLogic):
     def _save_depth_data(self, colorscale_range=None, percentile_range=None):
         """ Execute save operation. Slot for _signal_save_depth. """
         self.signal_save_started.emit()
-        filepath = self._save_logic.get_path_for_module('sps_confocal')
+        filepath = self._save_logic.get_path_for_module('af_confocal')
         timestamp = datetime.datetime.now()
         # Prepare the metadata parameters (common to both saved files):
         parameters = OrderedDict()
@@ -1071,7 +1071,7 @@ class ConfocalLogic(GenericLogic):
             image_data['Confocal pure depth scan image data without axis.\n'
                 'The upper left entry represents the signal at the upper left pixel position.\n'
                 'A pixel-line in the image corresponds to a row in '
-                'of entries where the Signal is in counts/s:'] = self.depth_image[:, :, 3 + n]
+                'of entries where the Signal is in V:'] = self.depth_image[:, :, 3 + n]
 
             filelabel = 'confocal_depth_image_{0}'.format(ch.replace('/', ''))
             self._save_logic.save_data(image_data,
@@ -1217,7 +1217,7 @@ class ConfocalLogic(GenericLogic):
 
         # Draw the colorbar
         cbar = plt.colorbar(cfimage, shrink=0.8)#, fraction=0.046, pad=0.08, shrink=0.75)
-        cbar.set_label('Fluorescence (' + c_prefix + 'c/s)')
+        cbar.set_label('Signal (' + c_prefix + 'V)')
 
         # remove ticks from colorbar for cleaner image
         cbar.ax.tick_params(which=u'both', length=0)

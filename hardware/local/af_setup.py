@@ -13,14 +13,13 @@ from core.connector import Connector
 
 
 class NITTConfocalScanner(Base):
-    """ Designed for use a National Instruments device to control laser scanning and use TimeTagger to count photons.
-
+    """ 
     See [National Instruments X Series Documentation](@ref nidaq-x-series) for details.
 
     stable: Kay Jahnke, Alexander Stark
 
     Example config for copy-paste:
-    sps_setup:
+        sps_setup:
         module.Class: 'local.sps_setup.NITTConfocalScanner'
         connect:
             nicard: 'nicard'
@@ -32,32 +31,25 @@ class NITTConfocalScanner(Base):
             - 'AO2'
             - 'AO3'
         scanner_voltage_ranges:
-            - [0, 5]
-            - [0, 5]
-            - [0, 3.2]
-            - [-5, 5]
+            - [0, 10]
+            - [0, 10]
+            - [0, 10]
+            - [0, 10]
         scanner_position_ranges:
-            - [0, 300e-6]
-            - [0, 300e-6]
-            - [0, 20e-6]
-            - [0, 30e3]
+            - [0, 1000]
+            - [0, 1000]
+            - [0, 1000]
+            - [0, 1000]
         scanner_clock_channel:
             - 'ctr0'
         pixel_clock_channel:
             - 'pfi0'
         timetagger_cbm_begin_channel:
             - 'ch8'
-        scanner_ai_channels:
-            - 'AI0'
-            - 'AI1'
-        ai_voltage_ranges:
-            - [-10,10]
-            - [-10,10]
 
     """
 
     nicard = Connector(interface = "NICard")
-    timetagger = Connector(interface = "TT")
 
     # config options
     _scanner_ao_channels = ConfigOption('scanner_ao_channels', missing='error')
@@ -65,19 +57,15 @@ class NITTConfocalScanner(Base):
     _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
     _scanner_clock_channel = ConfigOption('scanner_clock_channel', missing='error') 
     _pixel_clock_channel = ConfigOption('pixel_clock_channel', None, missing='nothing')
-    _timetagger_cbm_begin_channel = ConfigOption('timetagger_cbm_begin_channel', missing='error')
-    _scanner_ai_channels = ConfigOption('scanner_ai_channels', list(), missing='nothing')
-    _ai_voltage_ranges = ConfigOption('ai_voltage_ranges', None, missing='nothing')
+    _scanner_ai_channels = ConfigOption('scanner_ai_channels', list(), missing='error')
+    _ai_voltage_ranges = ConfigOption('ai_voltage_ranges', None, missing='error')
 
 
     def on_activate(self):
         self._nicard = self.nicard()
-        self._tt = self.timetagger()
         self._scanner_task = None
         self._scanner_clock_task = None
-        self._timetagger_cbm_tasks = list()
-        if self._scanner_ai_channels:
-            self._scanner_ai_task = None
+        self._scanner_ai_task = None
         self._line_length = None
         self._current_position = np.zeros(len(self._scanner_ao_channels))
         
@@ -89,22 +77,18 @@ class NITTConfocalScanner(Base):
             self.log.error(
                 'Specify as many scanner_position_ranges as scanner_ao_channels!')
 
-        # channels to show in the image channel combobox
-        self._timetagger_scanner_counter_channels = self._tt._detector_channels.copy()
-        self._timetagger_scanner_counter_channels.insert(0,'all')
-
-        self._scanner_task = self._nicard.create_ao_task(taskname = 'sps_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
+        self._scanner_task = self._nicard.create_ao_task(taskname = 'af_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
 
 
     def on_deactivate(self):
         """ Deactivate the module and clean up.
         """
-        self._nicard.close_ao_task(taskname = 'sps_setup_ao')
+        self._nicard.close_ao_task(taskname = 'af_setup_ao')
         self._scanner_task = None
-        self._nicard.close_co_task(taskname = 'sps_setup_scanner_clock')
+        self._nicard.close_co_task(taskname = 'af_setup_scanner_clock')
         self._scanner_clock_task = None
-        if self._scanner_ai_channels and self._scanner_ai_task is not None:
-            self._nicard.close_ai_task(taskname = 'sps_setup_ai')
+        if self._scanner_ai_task is not None:
+            self._nicard.close_ai_task(taskname = 'af_setup_ai')
             self._scanner_ai_task = None
 
     def reset_hardware(self):
@@ -129,9 +113,7 @@ class NITTConfocalScanner(Base):
 
     def get_scanner_count_channels(self):
         """ Return list of counter channels """
-        ch = self._timetagger_scanner_counter_channels.copy()
-        ch.extend(self._scanner_ai_channels)
-        return ch
+        return self._scanner_ai_channels
 
     def get_position_range(self):
         """ Returns the physical range of the scanner.
@@ -161,7 +143,7 @@ class NITTConfocalScanner(Base):
         if clock_channel is not None:   
             self._scanner_clock_channel = clock_channel
 
-        self._scanner_clock_task = self._nicard.create_co_task(taskname = 'sps_setup_scanner_clock', channels = self._scanner_clock_channel, freq = self._scanner_clock_frequency, duty_cycle = 0.5)
+        self._scanner_clock_task = self._nicard.create_co_task(taskname = 'af_setup_scanner_clock', channels = self._scanner_clock_channel, freq = self._scanner_clock_frequency, duty_cycle = 0.5)
         # Create buffer for generating signal
         self._nicard.samp_timing_type(self._scanner_clock_task, type = 'implicit')
         self._nicard.cfg_implicit_timing(self._scanner_clock_task, sample_mode='continuous', samps_per_chan=10000)
@@ -174,33 +156,32 @@ class NITTConfocalScanner(Base):
         @return int: error code (0:OK, -1:error)
         """
         if self._scanner_task is None:
-            self._scanner_task = self._nicard.create_ao_task(taskname = 'sps_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
+            self._scanner_task = self._nicard.create_ao_task(taskname = 'af_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
         else:
             for i, task in enumerate(self._nicard._ao_task_handles):
-                if task.name == 'sps_setup_ao':
+                if task.name == 'af_setup_ao':
                     break
                 elif i == len(self._nicard._ao_task_handles)-1:
-                    self._scanner_task = self._nicard.create_ao_task(taskname = 'sps_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
+                    self._scanner_task = self._nicard.create_ao_task(taskname = 'af_setup_ao', channels = self._scanner_ao_channels, voltage_ranges = self._scanner_voltage_ranges)
 
         if self._scanner_clock_task is None:
             self.log.error('No clock running, call set_up_scanner_clock before starting the counter.')
             return -1
         else:
             for i, task in enumerate(self._nicard._co_task_handles):
-                if task.name == 'sps_setup_scanner_clock':
+                if task.name == 'af_setup_scanner_clock':
                     break
                 elif i == len(self._nicard._co_task_handles)-1:
-                    self.log.error('task sps_setup_scanner_clock is closed by other program')
+                    self.log.error('task af_setup_scanner_clock is closed by other program')
                     return -1
-        if self._scanner_ai_channels:
-            if self._scanner_ai_task is None:
-                self._scanner_ai_task = self._nicard.create_ai_task(taskname = 'sps_setup_ai', channels = self._scanner_ai_channels, voltage_ranges = self._ai_voltage_ranges)
-            else:
-                for i, task in enumerate(self._nicard._ai_task_handles):
-                    if task.name == 'sps_setup_ai':
-                        break
-                    elif i == len(self._nicard._ai_task_handles)-1:
-                        self._scanner_ai_task = self._nicard.create_ai_task(taskname = 'sps_setup_ai', channels = self._scanner_ai_channels, voltage_ranges = self._ai_voltage_ranges)
+        if self._scanner_ai_task is None:
+            self._scanner_ai_task = self._nicard.create_ai_task(taskname = 'af_setup_ai', channels = self._scanner_ai_channels, voltage_ranges = self._ai_voltage_ranges)
+        else:
+            for i, task in enumerate(self._nicard._ai_task_handles):
+                if task.name == 'af_setup_ai':
+                    break
+                elif i == len(self._nicard._ai_task_handles)-1:
+                    self._scanner_ai_task = self._nicard.create_ai_task(taskname = 'af_setup_ai', channels = self._scanner_ai_channels, voltage_ranges = self._ai_voltage_ranges)
 
         return 0
 
@@ -301,8 +282,6 @@ class NITTConfocalScanner(Base):
     def _set_up_line(self, length = 100):
         """the configuration needed to do before every scan line, assign buffer according to length to tasks
 
-        start cbm task in TimeTagger
-
         Set up the configuration of ao task for scanning with certain length
 
         Connect the timing of the ao task with the timing of the
@@ -325,17 +304,8 @@ class NITTConfocalScanner(Base):
                 # changed is combined with obtaining the counts per voltage peak).
                 self._nicard.cfg_samp_clk_timing(self._scanner_task, rate = self._scanner_clock_frequency, source = self._scanner_clock_channel[0], samps_per_chan = self._line_length)
 
-            # Start instance of TimeTagger.CountBetweenMarkers with the correct channels. Does this every time a line is scanned
-            self._timetagger_cbm_tasks = list()
-            for i,ch in enumerate(self._timetagger_scanner_counter_channels):
-                if ch == 'all':
-                    self._timetagger_cbm_tasks.append(self._tt.count_between_markers(click_channel = self._tt._combined_detectorChans.getChannel(), begin_channel = self._tt.channel_codes[self._timetagger_cbm_begin_channel[0]], n_values=self._line_length))
-                else:
-                    self._timetagger_cbm_tasks.append(self._tt.count_between_markers(click_channel = self._tt.channel_codes[ch], begin_channel = self._tt.channel_codes[self._timetagger_cbm_begin_channel[0]], n_values=self._line_length))
             # Set up the configuration of ai task for scanning with certain length
-            # dont't put ai task into self._timetagger_cbm_tasks
-            if self._scanner_ai_channels:
-                self._nicard.cfg_samp_clk_timing(self._scanner_ai_task, rate = self._scanner_clock_frequency, source= self._scanner_clock_channel[0], samps_per_chan = self._line_length+1)
+            self._nicard.cfg_samp_clk_timing(self._scanner_ai_task, rate = self._scanner_clock_frequency, source= self._scanner_clock_channel[0], samps_per_chan = self._line_length+1)
 
 
             # Configure Implicit Timing for the clock.
@@ -383,21 +353,15 @@ class NITTConfocalScanner(Base):
                 self._nicard.connect_ctr_to_pfi(self._scanner_clock_channel[0], self._pixel_clock_channel[0])
             # start the timed analog output task
             self._scanner_task.start()
-            if self._scanner_ai_channels:
-                self._scanner_ai_task.start()
+            self._scanner_ai_task.start()
             self._scanner_clock_task.start()
-
-            # wait for the scanner counter to finish
-            for i, ch in enumerate(self._timetagger_cbm_tasks):
-                self._timetagger_cbm_tasks[i].waitUntilFinished(timeout = 10 * 2 * self._line_length)
             
             # wait for the scanner clock to finish
             self._scanner_clock_task.wait_until_done(timeout = 10 * 2 * self._line_length)
 
             # data readout from ai channels
-            if self._scanner_ai_channels:
-                self._analog_data = self._scanner_ai_task.read(self._line_length + 1)
-                self._scanner_ai_task.stop()
+            self._analog_data = self._scanner_ai_task.read(self._line_length + 1)
+            self._scanner_ai_task.stop()
 
             # stop the clock task
             self._scanner_clock_task.stop()
@@ -410,13 +374,8 @@ class NITTConfocalScanner(Base):
 
             all_data = np.full(
                 (len(self.get_scanner_count_channels()), self._line_length), 2, dtype=np.float64)
-            for i, task in enumerate(self._timetagger_cbm_tasks):
-                counts = np.nan_to_num(task.getData())
-                data = np.reshape(counts,(1, self._line_length))
-                all_data[i] = data * self._scanner_clock_frequency
-            if self._scanner_ai_channels:
-                analog_data = np.reshape(self._analog_data,(len(self._scanner_ai_channels),self._line_length +1))
-                all_data[len(self._timetagger_cbm_tasks):] = analog_data[:, :-1]
+            analog_data = np.reshape(self._analog_data,(len(self._scanner_ai_channels),self._line_length +1))
+            all_data = analog_data[:, :-1]
 
             # update the scanner position instance variable
             self._current_position = np.array(line_path[:, -1])
@@ -435,11 +394,7 @@ class NITTConfocalScanner(Base):
         try:
             self._scanner_task.stop()
             self._nicard.samp_timing_type(self._scanner_task, 'on_demand')
-            for i, task in enumerate(self._timetagger_cbm_tasks):
-                if task.isRunning():
-                    task.stop()
-                task.clear()
-            if self._scanner_ai_channels and self._scanner_ai_task is not None:
+            if self._scanner_ai_task is not None:
                 if not self._scanner_ai_task.is_task_done():
                     self._scanner_ai_task.stop()
         except:
@@ -458,7 +413,7 @@ class NITTConfocalScanner(Base):
         """
         
         self._scanner_clock_task = None
-        return self._nicard.close_co_task(taskname = 'sps_setup_scanner_clock')
+        return self._nicard.close_co_task(taskname = 'af_setup_scanner_clock')
 
 
 
