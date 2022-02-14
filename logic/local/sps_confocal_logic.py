@@ -264,7 +264,7 @@ class ConfocalLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
 
     # status vars
-    _clock_frequency = StatusVar('clock_frequency', 500)
+    _clock_frequency = StatusVar('clock_frequency', 100)
     return_slowness = StatusVar(default=50)
     goto_speed = StatusVar(default=20)
     max_history_length = StatusVar(default=10)
@@ -411,6 +411,9 @@ class ConfocalLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
+        if int(clock_frequency) > 200:
+            self.log.error('According to manual of PI S-334, the frequencies must be set below 200 Hz')
+            return -1
         self._clock_frequency = int(clock_frequency)
         #checks if scanner is still running
         if self.module_state() == 'locked':
@@ -717,12 +720,13 @@ class ConfocalLogic(GenericLogic):
         move_line = []
         gs = self.goto_speed
 
-        for i, ch in enumerate(self.get_scanner_axes()):
+        for i, ch in enumerate(self.get_scanner_axes()):        
             move_line.append(np.linspace(old_pos_array[i], pos_array[i], gs))
         
         _move_line = np.transpose(move_line)
         for i, pos in enumerate(_move_line):
             self._scanning_device.scanner_set_position(*pos)
+            time.sleep(0.005/gs)
         return 0
 
     def get_position(self):
@@ -1250,7 +1254,6 @@ class ConfocalLogic(GenericLogic):
         self.signal_draw_figure_completed.emit()
         return fig
 
-    ##################################### Tilt correction ########################################
 
     @QtCore.Slot()
     def set_tilt_point1(self):

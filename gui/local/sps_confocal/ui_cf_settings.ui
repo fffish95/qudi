@@ -52,7 +52,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;That is the inverse time how long the scanner stays at the desired position during the scan and counts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>Clock frequency (Hz)</string>
+         <string>Clock frequency (Hz) [&lt;200 Hz]</string>
         </property>
        </widget>
       </item>
@@ -95,7 +95,7 @@
          <number>1000000</number>
         </property>
         <property name="value">
-         <number>1000</number>
+         <number>100</number>
         </property>
        </widget>
       </item>
