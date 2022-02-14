@@ -601,8 +601,8 @@ class ConfocalLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
         self.module_state.lock()
-
         self._scanning_device.module_state.lock()
+
         if self.initialize_image() < 0:
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()
@@ -628,6 +628,30 @@ class ConfocalLogic(GenericLogic):
 
         self.signal_scan_lines_next.emit()
         return 0
+
+    def start_oneline_scanner(self):
+        self.module_state.lock()
+        self._scanning_device.module_state.lock()
+
+        clock_status = self._scanning_device.set_up_scanner_clock(
+            clock_frequency=self._clock_frequency)
+
+        if clock_status < 0:
+            self._scanning_device.module_state.unlock()
+            self.module_state.unlock()
+            self.set_position('scanner')
+            return -1
+
+        scanner_status = self._scanning_device.set_up_scanner()
+
+        if scanner_status < 0:
+            self._scanning_device.close_scanner_clock()
+            self._scanning_device.module_state.unlock()
+            self.module_state.unlock()
+            self.set_position('scanner')
+            return -1
+        return 0
+
 
     def continue_scanner(self):
         """Continue the scanning procedure
@@ -717,16 +741,17 @@ class ConfocalLogic(GenericLogic):
         """
         old_pos_array = self._scanning_device.get_scanner_position()        
         pos_array = [self._current_x, self._current_y, self._current_z, self._current_a]
-        move_line = []
         gs = self.goto_speed
 
-        for i, ch in enumerate(self.get_scanner_axes()):        
-            move_line.append(np.linspace(old_pos_array[i], pos_array[i], gs))
-        
-        _move_line = np.transpose(move_line)
-        for i, pos in enumerate(_move_line):
-            self._scanning_device.scanner_set_position(*pos)
-            time.sleep(0.005/gs)
+        lsx = np.linspace(old_pos_array[0], pos_array[0], gs)
+        lsy = np.linspace(old_pos_array[1], pos_array[1], gs)
+        lsz = np.linspace(old_pos_array[2], pos_array[2], gs)
+        lsa = np.linspace(old_pos_array[3], pos_array[3], gs)
+        move_line = np.vstack([lsx, lsy, lsz, lsa])
+        self.start_oneline_scanner()
+        move_line_counts = self._scanning_device.scan_line(move_line)
+        self.kill_scanner()
+        self.module_state.unlock()
         return 0
 
     def get_position(self):
