@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1166</width>
-    <height>1130</height>
+    <width>1093</width>
+    <height>1133</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -30,7 +30,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1166</width>
+     <width>1093</width>
      <height>26</height>
     </rect>
    </property>
@@ -57,6 +57,7 @@
     <addaction name="actionScan_control_view"/>
     <addaction name="actionTrace_view"/>
     <addaction name="actionRetrace_view"/>
+    <addaction name="actionCustom_scan_view"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuView"/>
@@ -257,8 +258,8 @@
   <widget class="QDockWidget" name="Trace_dockWidget">
    <property name="minimumSize">
     <size>
-     <width>109</width>
-     <height>229</height>
+     <width>2000</width>
+     <height>2026</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -274,7 +275,7 @@
       <height>2000</height>
      </size>
     </property>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -320,17 +321,7 @@
       </item>
       <item>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="4" column="0" colspan="2">
-         <widget class="QSpinBox" name="voltscan_cb_min_InputWidget">
-          <property name="maximum">
-           <number>999999999</number>
-          </property>
-          <property name="value">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0" colspan="2">
+        <item row="1" column="0" colspan="2">
          <widget class="QSpinBox" name="voltscan_cb_max_InputWidget">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -349,7 +340,7 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
+        <item row="2" column="1">
          <widget class="QSpinBox" name="voltscan_cb_high_centile_InputWidget">
           <property name="maximum">
            <number>100</number>
@@ -359,7 +350,7 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
+        <item row="4" column="0">
          <widget class="QLabel" name="percentLabel1">
           <property name="maximumSize">
            <size>
@@ -372,20 +363,7 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="percentLabel2">
-          <property name="maximumSize">
-           <size>
-            <width>30</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;% :&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="0" colspan="2">
+        <item row="7" column="0" colspan="2">
          <widget class="QRadioButton" name="voltscan_cb_manual_RadioButton">
           <property name="text">
            <string>Man&amp;ual</string>
@@ -395,7 +373,14 @@
           </attribute>
          </widget>
         </item>
-        <item row="5" column="0" colspan="2">
+        <item row="4" column="1">
+         <widget class="QSpinBox" name="voltscan_cb_low_centile_InputWidget">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0" colspan="2">
          <widget class="QRadioButton" name="voltscan_cb_centiles_RadioButton">
           <property name="text">
            <string>&amp;Centiles</string>
@@ -408,14 +393,20 @@
           </attribute>
          </widget>
         </item>
-        <item row="3" column="1">
-         <widget class="QSpinBox" name="voltscan_cb_low_centile_InputWidget">
-          <property name="maximum">
-           <number>100</number>
+        <item row="2" column="0">
+         <widget class="QLabel" name="percentLabel2">
+          <property name="maximumSize">
+           <size>
+            <width>30</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;% :&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="0" colspan="2">
+        <item row="3" column="0" colspan="2">
          <widget class="PlotWidget" name="voltscan_cb_ViewWidget">
           <property name="maximumSize">
            <size>
@@ -425,6 +416,19 @@
           </property>
          </widget>
         </item>
+        <item row="5" column="0" colspan="2">
+         <widget class="QSpinBox" name="voltscan_cb_min_InputWidget">
+          <property name="maximum">
+           <number>999999999</number>
+          </property>
+          <property name="value">
+           <number>100</number>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0" colspan="2">
+         <widget class="QComboBox" name="channel_ComboBox"/>
+        </item>
        </layout>
       </item>
      </layout>
@@ -432,6 +436,12 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="Retrace_dockWidget">
+   <property name="minimumSize">
+    <size>
+     <width>730</width>
+     <height>229</height>
+    </size>
+   </property>
    <property name="windowTitle">
     <string>Retrace</string>
    </property>
@@ -505,6 +515,325 @@
    </attribute>
    <addaction name="actionBack"/>
    <addaction name="actionForward"/>
+  </widget>
+  <widget class="QDockWidget" name="custom_scan_dockWidget">
+   <property name="minimumSize">
+    <size>
+     <width>357</width>
+     <height>261</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Custom scan</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_3">
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="0" column="1" colspan="3">
+      <widget class="QLabel" name="sweeps_per_action_label">
+       <property name="text">
+        <string>Sweeps per action:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
+      <widget class="QSpinBox" name="sweeps_per_action_InputWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>2000</number>
+       </property>
+       <property name="value">
+        <number>1</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QRadioButton" name="custom_ao_radioButton">
+       <property name="text">
+        <string>Custom AO</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <widget class="QLabel" name="Order_label">
+       <property name="text">
+        <string>Order</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="x_ao0_label">
+       <property name="text">
+        <string>X</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QDoubleSpinBox" name="x_ao0_max_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1" colspan="2">
+      <widget class="QDoubleSpinBox" name="x_ao0_min_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QRadioButton" name="xy_plot_radioButton">
+       <property name="text">
+        <string>XY plot</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="4">
+      <widget class="QSpinBox" name="x_ao0_order_InputWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>3</number>
+       </property>
+       <property name="value">
+        <number>1</number>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="3">
+      <widget class="QDoubleSpinBox" name="y_ao1_max_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1" colspan="2">
+      <widget class="QDoubleSpinBox" name="y_ao1_min_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1" colspan="2">
+      <widget class="QDoubleSpinBox" name="z_ao2_min_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="y_ao1_label">
+       <property name="text">
+        <string>Y</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="4">
+      <widget class="QSpinBox" name="y_ao1_order_InputWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>3</number>
+       </property>
+       <property name="value">
+        <number>2</number>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="z_ao2_label">
+       <property name="text">
+        <string>Z</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="3">
+      <widget class="QDoubleSpinBox" name="z_ao2_max_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="4">
+      <widget class="QSpinBox" name="z_ao2_order_InputWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="accelerated">
+        <bool>true</bool>
+       </property>
+       <property name="maximum">
+        <number>3</number>
+       </property>
+       <property name="value">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QRadioButton" name="custom_function_radioButton">
+       <property name="text">
+        <string>Custom function</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1" colspan="3">
+      <widget class="QLabel" name="position_voltage_range_label">
+       <property name="text">
+        <string>Position range</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <action name="action_Settings">
    <property name="icon">
@@ -714,6 +1043,14 @@
    </property>
    <property name="shortcut">
     <string>Alt+R</string>
+   </property>
+  </action>
+  <action name="actionCustom_scan_view">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Custom scan</string>
    </property>
   </action>
  </widget>
