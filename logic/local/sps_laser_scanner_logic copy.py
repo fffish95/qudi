@@ -30,6 +30,7 @@ from html5lib import serialize
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from enum import Enum 
 
 from core.connector import Connector
 from core.statusvariable import StatusVar
@@ -89,6 +90,7 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         # Default values for custom scan
         self.custom_scan = False
         self.custom_scan_mode = CustomScanMode.FUNCTION
+        self.custom_scan_values = CustomScanXYPlotValues.MINIMUM
         self.custom_scan_sweeps_per_action = 1
         self.custom_scan_x_range = self.x_range
         self.custom_scan_y_range = self.y_range
@@ -197,7 +199,7 @@ class LaserScannerHistoryEntry(QtCore.QObject):
             self.scan_continuable = serialized['scan_continuable']
         if 'custom_scan' in serialized:
             self.custom_scan = serialized['custom_scan']
-        if 'custom_scan_mode' in serialized and isinstance(serialized[custom_scan_mode], CustomScanMode):
+        if 'custom_scan_mode' in serialized and isinstance(serialized['custom_scan_mode'], CustomScanMode):
             self.custom_scan_mode = serialized['custom_scan_mode']
         
         if 'trace_scan_matrix' in serialized:
@@ -225,21 +227,22 @@ class LaserScannernernerLogic(GenericLogic):
 
     # status vars
     _smoothing_steps = StatusVar(default=10)
-    max_history_length = StatusVar(default=10)
+    _order_3_counter = StatusVar(default=0)
+    max_history_length = StatusVar(default=50)
 
     # signals
-    signal_start_scanning = QtCore.Signal()
+    signal_start_scanning = QtCore.Signal(str)
     signal_continue_scanning = QtCore.Signal()
     signal_scan_lines_next = QtCore.Signal()
     signal_plots_updated = QtCore.Signal()
     signal_change_position = QtCore.Signal(str)
     signal_save_started = QtCore.Signal()
-    signal_saved = QtCore.Signal()
+    signal_data_saved = QtCore.Signal()
     signal_draw_figure_completed = QtCore.Signal()
     signal_position_changed = QtCore.Signal()
     signal_clock_frequency_updated = QtCore.Signal()
 
-    _signal_save_plots = QtCore.Signal(object, object)
+    _signal_save_data = QtCore.Signal(object, object)
 
     sigPlotsInitialized = QtCore.Signal()
     signal_history_event = QtCore.Signal()
@@ -273,9 +276,9 @@ class LaserScannernernerLogic(GenericLogic):
         # Sets connections between signals and functions
         self.signal_scan_lines_next.connect(self._scan_line, QtCore.Qt.QueuedConnection)
         self.signal_start_scanning.connect(self.start_scanner, QtCore.Qt.QueuedConnection)
-        self.signal_continue_scanning.connect(self.contine_scanner, QtCore.Qt.QueuedConnection)
+        self.signal_continue_scanning.connect(self.continue_scanner, QtCore.Qt.QueuedConnection)
         
-        self._signal_save_plots.connect(self._save_plots, QtCore.Qt.QueuedConnection)
+        self._signal_save_data.connect(self._save_data, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
@@ -326,6 +329,35 @@ class LaserScannernernerLogic(GenericLogic):
         self.signal_change_position.emit('history')
         self.signal_history_event.emit()
 
+    def history_forward(self):
+        """ Move forward in history.
+        """
+        if self.history_index < len(self.history) - 1:
+            self.history_index += 1
+            self.history[self.history_index].restore(self)
+            self.signal_plots_updated.emit()
+            # clock frequency is not in status variables, set clock frequency
+            self.set_clock_frequency()
+            self._change_position()
+            self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
+            self.signal_change_position.emit('history')
+            self.signal_history_event.emit()
+
+    def history_back(self):
+        """ Move backwards in history.
+        """
+        if self.history_index > 0:
+            self.history_index -= 1
+            self.history[self.history_index].restore(self)
+            self.signal_plots_updated.emit()
+            # clock frequency is not in status variables, set clock frequency
+            self.set_clock_frequency()
+            self._change_position()
+            self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
+            self.signal_change_position.emit('history')
+            self.signal_history_event.emit()
+
+
     def set_clock_frequency(self):
         scan_range = abs(self._scan_range[1] - self._scan_range[0])
         duration = scan_range / self._scan_speed
@@ -333,12 +365,15 @@ class LaserScannernernerLogic(GenericLogic):
         self._clock_frequency = float(clock_frequency)
         self.signal_clock_frequency_updated.emit()
         # checks if scanner is still running:
+        if self._clock_frequency > 250000:
+            self.log.error('Clock frequency too high, please reduce resolution or slow down speed.')
+            return -1
         if self.module_state() == 'locked':
             return -1
         else:
             return 0
 
-    def start_scanning(self, custom_scan = False):
+    def start_scanning(self, custom_scan = False, tag = 'logic'):
         self._scan_counter = 0
         self._custom_scan = custom_scan
         if not self._custom_scan:
@@ -346,7 +381,7 @@ class LaserScannernernerLogic(GenericLogic):
         else:
             self._scan_continuable = False
         self._move_to_start = True
-        self.signal_start_scanning.emit()
+        self.signal_start_scanning.emit(tag)
         return 0
 
     def continue_scanning(self):
@@ -370,11 +405,11 @@ class LaserScannernernerLogic(GenericLogic):
         self._confocal_logic.signal_scan_range_updated.emit()
 
     def initialise_data_matrix(self): 
-        self.trace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution))
-        self.retrace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution))
-        self.trace_plot_y_sum = np.zeros(self._resolution)
-        self.trace_plot_y = np.zeros(self._resolution)
-        self.retrace_plot_y = np.zeros(self._resolution)
+        self.trace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 2 + len(self.get_scanner_count_channels())))
+        self.retrace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 2 + len(self.get_scanner_count_channels())))
+        self.trace_plot_y_sum = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
+        self.trace_plot_y = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
+        self.retrace_plot_y = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
 
 
         if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
@@ -387,7 +422,7 @@ class LaserScannernernerLogic(GenericLogic):
             # y1: y-start-value, y2: y-end-value
             y1, y2 = self._custom_scan_y_range[0], self._custom_scan_y_range[1]
             # z1: z-start-value, z2: x-end-value
-            #z1, z2 = self._custom_scan_z_range[0], self._custom_scan_z_range[1]
+            z1, z2 = self._custom_scan_z_range[0], self._custom_scan_z_range[1]
 
             if x2 < x1:
                 self.log.error(
@@ -400,16 +435,20 @@ class LaserScannernernerLogic(GenericLogic):
                     '({0:.3f},{1:.3f}).'.format(y1, y2))
                 return -1
             # TO DO when z order = 0, z2 = z1
-            #if self._custom_scan_z_order in [0,3]:
-               # if z2 < z1:
-               #     self.log.error(
-                  #      'z1 must be smaller than z2, but they are '
-                  #      '({0:.3f},{1:.3f}).'.format(z1, z2))
-                  #  return -1
-            #else:
-                #self.log.error('z order must be 0 or 3 in xyplot mode.')
+            if self._custom_scan_z_order in [0,3]:
+                if z2 < z1:
+                    self.log.error(
+                        'z1 must be smaller than z2, but they are '
+                        '({0:.3f},{1:.3f}).'.format(z1, z2))
+                    return -1
+            else:
+                self.log.error('z order must be 0 or 3 in xyplot mode.')
             self._X = np.linspace( x1, x2, self._custom_scan_order_1_resolution)
             self._Y = np.linspace( y1, y2, self._custom_scan_order_2_resolution)
+            if self._custom_scan_z_order == 3:
+                self._Z = np.linspace( z1, z2, self._custom_scan_order_3_resolution)
+            else:
+                self._Z = np.linspace( z1, z1, 1)
             self._confocal_logic.xy_image = np.zeros((
                     len(self._Y),
                     len(self._X),
@@ -419,13 +458,13 @@ class LaserScannernernerLogic(GenericLogic):
                 (len(self._Y), len(self._X), self._X)
             )
             y_value_matrix = np.full((len(self._X), len(self._Y)), self._Y)
-            self.xy_image[:, :, 1] = y_value_matrix.transpose()
-            self.xy_image[:, :, 2] = self._current_z * np.ones(
+            self._confocal_logic.xy_image[:, :, 1] = y_value_matrix.transpose()
+            self._confocal_logic.xy_image[:, :, 2] = self._current_z * np.ones(
                 (len(self._Y, len(self._X)))
             )
         #if custom_scan and self._custom_scan_mode == CustomScanMode.AO:
     
-    def start_scanner(self):
+    def start_scanner(self, tag):
         """Setting up the scanner device and starts the scanning procedure
 
         @return int: error code (0:OK, -1:error)
@@ -461,8 +500,11 @@ class LaserScannernernerLogic(GenericLogic):
             self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
             return -1
                 
-        self.initialise_data_matrix()
-        self.signal_scan_lines_next.emit()
+
+        if tag != 'custom_scan':
+            self.initialise_data_matrix()
+            self.signal_scan_lines_next.emit()
+
         return 0
     
     def start_oneline_scanner(self):
@@ -536,6 +578,11 @@ class LaserScannernernerLogic(GenericLogic):
             self._scanning_device.module_state.unlock()
         except Exception as e:
             self.log.exception('Could not unlock scanning device.')
+        if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+            try:
+                self._confocal_logic.module_state.lock()
+            except Exception as e:
+                self.log.exception('Could not unlock the confocal logic.')
 
         return 0
 
@@ -634,401 +681,264 @@ class LaserScannernernerLogic(GenericLogic):
                 self.kill_scanner()
                 self.stopRequested = False
                 self.module_state.unlock()
-                self.siganl_plots_updated.exmit()
+                self.siganl_plots_updated.emit()
+                if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+                    self.custom_xyplot_stop()
                 self._change_position()
-                
-        if line_to_scan is None:
-            self.log.error('Voltage scanning logic needs a line to scan!')
-            return -1
+                # add new history entry
+                new_history = LaserScannerHistoryEntry(self)
+                new_history.snapshot(self)
+                self.history.append(new_history)
+                if len(self.history) > self.max_history_length:
+                    self.history.pop(0)
+                self.history_index = len(self.history) - 1
+                self.signal_history_event.emit()
+                return
+
         try:
-            # scan of a single line
-            if pixel_clock:
-                counts_on_scan_line = self._scanning_device.scan_line(line_to_scan, pixel_clock = True)
-            else:
-                counts_on_scan_line = self._scanning_device.scan_line(line_to_scan)
-            return counts_on_scan_line.transpose()[0]
+            if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+                self.custom_xyplot_prepare()
+            if self._move_to_start:
+                move_line = self._generate_ramp(self._scanning_device.get_scanner_position()[3], self._scan_range[0])
+                move_line_counts = self._scanning_device.scan_line(move_line)
+                if np.any(move_line_counts == -1):
+                    self.stop_scanning()
+                    self.signal_scan_lines_next.emit()
+                    return
+            trace_line = self._generate_ramp(self._scan_range[0], self._scan_range[1])
+            counts_on_trace_line = self._scanning_device.scan_line(trace_line, pixel_clock = pixel_clock)
+            if np.any(counts_on_trace_line == -1):
+                self.stop_scanning()
+                self.signal_scan_lines_next.emit()
+                return
+            
+            retrace_line = self._generate_ramp(self._scan_range[1], self._scan_range[0])
+            counts_on_retrace_line = self._scanning_device.scan_line(retrace_line, pixel_clock = pixel_clock)
+            if np.any(counts_on_retrace_line == -1):
+                self.stop_scanning()
+                self.signal_scan_lines_next.emit()
+                return
+            self.trace_scan_matrix[self._scan_counter, :, 0] = trace_line[-1]
+            self.retrace_scan_matrix[self._scan_counter, :, 0] = retrace_line[-1]
+            self.trace_scan_matrix[self._scan_counter, :, 1:] = counts_on_trace_line
+            self.retrace_scan_matrix[self._scan_counter, :, 1:] = counts_on_retrace_line
+            self.trace_plot_y_sum[self._scan_counter, :] = self.trace_plot_y_sum[self._scan_counter-1, :] + counts_on_trace_line
+            self.trace_plot_y[self._scan_counter, :] = counts_on_trace_line
+            self.retrace_plot_y[self._scan_counter, :] = counts_on_retrace_line
+            
+            self.signal_plots_updated.emit()
 
-        except Exception as e:
-            self.log.error('The scan went wrong, killing the scanner.')
+            # next line in scan
+            self._scan_counter += 1
+
+            if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+                self.custom_xyplot_process()
+            
+            elif self._scan_counter >= self._number_of_repeats:
+                self.stop_scanning()
+                self._scan_continuable = False
+            
+            self.signal_scan_lines_next.emit()
+        except:
+            self.log.exception('The scan went wrong, killing the scanner.')
             self.stop_scanning()
-            self.sigScanNextLine.emit()
-            raise e
+            self.signal_scan_lines_next.emit()
 
+    def custom_xyplot_prepare(self):
+        self.x_counter = (self._scan_counter // self._custom_scan_sweeps_per_action) % self._custom_scan_order_1_resolution
+        self.y_counter = (self._scan_counter // self._custom_scan_sweeps_per_action) // self._custom_scan_order_1_resolution
+        self.z_counter = self._order_3_counter
+        # when it is needed to change the point...
+        if self._scan_counter % self._custom_scan_sweeps_per_action == 0:
+            self.kill_scanner()
+            self.set_position(x = self._X[self.x_counter], y = self._Y[self.y_counter], z = self._Z[self.z_counter])                
+            self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
+            self.start_scanner(tag = 'custom_scan')
+    
+    def custom_xyplot_process(self):
+        # when it is needed to record the value...
+        if self._scan_counter % self._custom_scan_sweeps_per_action == 0:
+            data_array = []
+            for i in range(0, self._custom_scan_sweeps_per_action):
+                data_array.append(self.trace_plot_y[self._scan_counter-1-i,:])
 
-    def _do_next_line(self):
-        """ If stopRequested then finish the scan, otherwise perform next repeat of the scan line
-        """
-        # stops scanning
-        if self.stopRequested or self._scan_counter_down >= self.number_of_repeats:
-            print(self.current_position)
-            self._goto_during_scan(self._static_v)
-            self._close_scanner()
-            self.sigScanFinished.emit()
-            return
+            for s_ch in range(0,len(self.get_scanner_count_channels())):
+                if self._custom_scan_values == CustomScanXYPlotValues.MINIMUM:
+                    data_min_array=[]
+                    for i in range(0, len(data_array)):
+                        data_min_array.append(np.min(data_array[i][s_ch]))
+                    point_value = np.mean(data_min_array)
+                if self._custom_scan_values == CustomScanXYPlotValues.MEAN:
+                    data_mean_array=[]
+                    for i in range(0, len(data_array)):
+                        data_mean_array.append(np.mean(data_array[i][s_ch]))
+                    point_value = np.mean(data_mean_array)  
+                if self._custom_scan_values == CustomScanXYPlotValues.MAXIMUM:
+                    data_max_array=[]
+                    for i in range(0, len(data_array)):
+                        data_max_array.append(np.max(data_array[i][s_ch]))
+                    point_value = np.mean(data_max_array)
+                self._confocal_logic.xy_image[:, :, 3 + s_ch][self.y_counter, self.x_counter] = point_value
+            
+            self._confocal_logic.signal_xy_image_updated.emit()
 
-        if self._scan_counter_up == 0:
-            # move from current voltage to start of scan range.
-            self._goto_during_scan(self.scan_range[0])
+        # when it is needed to change z value or stop the scan
+        if self._scan_counter >= self._number_of_repeats:
+            self._order_3_counter += 1
+            self._confocal_logic.save_xy_data()
+            self.save_data()
 
-        if self.upwards_scan:
-            counts = self._scan_line(self._upwards_ramp, pixel_clock=True)
-            self.scan_matrix[self._scan_counter_up] = counts
-            self.plot_y += counts
-            self._scan_counter_up += 1
-            self.upwards_scan = False
-            self.plot_y_2 = counts
-        else:
-            counts = self._scan_line(self._downwards_ramp)
-            self.scan_matrix2[self._scan_counter_down] = counts
-            self.plot_y2 += counts
-            self._scan_counter_down += 1
-            self.upwards_scan = True
-        
-        self.sigUpdatePlots.emit()
-        self.sigScanNextLine.emit()
-
-    def _goto_during_scan(self, voltage=None):
-
-        if voltage is None:
-            return -1
-
-        goto_ramp = self._generate_ramp(self.get_current_voltage(), voltage, self._goto_speed)
-        ignored_counts = self._scan_line(goto_ramp)
-
-        return 0
-
-
+            if self._order_3_counter >= len(self._Z):
+                self.stop_scanning()
+            else:
+                self._scan_counter = 0
+                self.initialise_data_matrix()
+    
+    def custom_xyplot_stop(self):
+        self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
+        self._custom_scan = False
+        self._order_3_counter = 0
+        self._confocal_logic.signal_xy_image_updated.emit()
 
     def set_scan_range(self, scan_range):
         """ Set the scan rnage """
         self._scan_range = scan_range
-
-
+        self.set_clock_frequency()
 
     def set_scan_speed(self, scan_speed):
         """ Set scan speed in volt per second """
         self._scan_speed = np.clip(scan_speed, 1e-9, 2e6)
-        self._goto_speed = self._scan_speed
+        self.set_clock_frequency()
+    
+    def set_resolution(self, resolution):
+        self._resolution = np.clip(resolution, 1, 1e6)
+        self.set_clock_frequency()
+    
 
-    def set_scan_lines(self, scan_lines):
-        self.number_of_repeats = int(np.clip(scan_lines, 1, 1e6))
+    def set_number_of_repeats(self, number_of_repeats):
+        self._number_of_repeats = int(np.clip(number_of_repeats, 1, 1e6))
 
-    def _initialise_data_matrix(self, scan_length):
+    def save_data(self, colorscale_range=None, percentile_range=None, block=True):
 
-        self.scan_matrix = np.zeros((self.number_of_repeats, scan_length))
-        self.scan_matrix2 = np.zeros((self.number_of_repeats, scan_length))
-        self.plot_x = np.linspace(self.scan_range[0], self.scan_range[1], scan_length)
-        self.plot_y = np.zeros(scan_length)
-        self.plot_y_2 = np.zeros(scan_length)
-        self.plot_y2 = np.zeros(scan_length)
-        self.fit_x = np.linspace(self.scan_range[0], self.scan_range[1], scan_length)
-        self.fit_y = np.zeros(scan_length)
-
-    def get_current_voltage(self):
-        """returns current voltage of hardware device(atm NIDAQ 4th output)"""
-        return self._scanning_device.get_scanner_position()[3]
-
-    def _initialise_scanner(self):
-        """Initialise the clock and locks for a scan"""
-        self.module_state.lock()
-        self._scanning_device.module_state.lock()
-
-        returnvalue = self._scanning_device.set_up_scanner_clock(
-            clock_frequency=self._clock_frequency)
-        if returnvalue < 0:
-            self._scanning_device.module_state.unlock()
-            self.module_state.unlock()
-            self.set_position('scanner')
-            return -1
-
-        returnvalue = self._scanning_device.set_up_scanner()
-        if returnvalue < 0:
-            self._scanning_device.module_state.unlock()
-            self.module_state.unlock()
-            self.set_position('scanner')
-            return -1
-
-        return 0
-
-    def start_scanning(self, v_min=None, v_max=None):
-        """Setting up the scanner device and starts the scanning procedure
-
-        @return int: error code (0:OK, -1:error)
-        """
-
-        self.current_position = self._scanning_device.get_scanner_position()
-        print(self.current_position)
-
-        if v_min is not None:
-            self.scan_range[0] = v_min
+        if block:
+            self._save_data(colorscale_range, percentile_range)
         else:
-            v_min = self.scan_range[0]
-        if v_max is not None:
-            self.scan_range[1] = v_max
-        else:
-            v_max = self.scan_range[1]
+            self._signal_save_data.emit(colorscale_range, percentile_range)
 
-        self._scan_counter_up = 0
-        self._scan_counter_down = 0
-        self.upwards_scan = True
-
-        # TODO: Generate Ramps
-        self._upwards_ramp = self._generate_ramp(v_min, v_max, self._scan_speed)
-        self._downwards_ramp = self._generate_ramp(v_max, v_min, self._scan_speed)
-
-        self._initialise_data_matrix(len(self._upwards_ramp[3]))
-
-        # Lock and set up scanner
-        returnvalue = self._initialise_scanner()
-        if returnvalue < 0:
-            # TODO: error message
-            return -1
-
-        self.sigScanNextLine.emit()
-        self.sigScanStarted.emit()
-        return 0
-
-    def stop_scanning(self):
-        """Stops the scan
-
-        @return int: error code (0:OK, -1:error)
-        """
-        with self.threadlock:
-            if self.module_state() == 'locked':
-                self.stopRequested = True
-        return 0
-
-    def _close_scanner(self):
-        """Close the scanner and unlock"""
-        with self.threadlock:
-            self.kill_scanner()
-            self.stopRequested = False
-            if self.module_state.can('unlock'):
-                self.module_state.unlock()
-
-    def _do_next_line(self):
-        """ If stopRequested then finish the scan, otherwise perform next repeat of the scan line
-        """
-        # stops scanning
-        if self.stopRequested or self._scan_counter_down >= self.number_of_repeats:
-            print(self.current_position)
-            self._goto_during_scan(self._static_v)
-            self._close_scanner()
-            self.sigScanFinished.emit()
-            return
-
-        if self._scan_counter_up == 0:
-            # move from current voltage to start of scan range.
-            self._goto_during_scan(self.scan_range[0])
-
-        if self.upwards_scan:
-            counts = self._scan_line(self._upwards_ramp, pixel_clock=True)
-            self.scan_matrix[self._scan_counter_up] = counts
-            self.plot_y += counts
-            self._scan_counter_up += 1
-            self.upwards_scan = False
-            self.plot_y_2 = counts
-        else:
-            counts = self._scan_line(self._downwards_ramp)
-            self.scan_matrix2[self._scan_counter_down] = counts
-            self.plot_y2 += counts
-            self._scan_counter_down += 1
-            self.upwards_scan = True
-        
-        self.sigUpdatePlots.emit()
-        self.sigScanNextLine.emit()
-
-    def _generate_ramp(self, voltage1, voltage2, speed):
-        """Generate a ramp vrom voltage1 to voltage2 that
-        satisfies the speed, step, smoothing_steps parameters.  Smoothing_steps=0 means that the
-        ramp is just linear.
-
-        @param float voltage1: voltage at start of ramp.
-
-        @param float voltage2: voltage at end of ramp.
-        """
-
-        # It is much easier to calculate the smoothed ramp for just one direction (upwards),
-        # and then to reverse it if a downwards ramp is required.
-
-        v_min = min(voltage1, voltage2)
-        v_max = max(voltage1, voltage2)
-
-        if v_min == v_max:
-            ramp = np.array([v_min, v_max])
-        else:
-            # These values help simplify some of the mathematical expressions
-            linear_v_step = speed / self._clock_frequency
-            smoothing_range = self._smoothing_steps + 1
-
-            # Sanity check in case the range is too short
-
-            # The voltage range covered while accelerating in the smoothing steps
-            v_range_of_accel = sum(
-                n * linear_v_step / smoothing_range for n in range(0, smoothing_range)
-                )
-
-            # Obtain voltage bounds for the linear part of the ramp
-            v_min_linear = v_min + v_range_of_accel
-            v_max_linear = v_max - v_range_of_accel
-
-            if v_min_linear > v_max_linear:
-                # self.log.warning(
-                #     'Voltage ramp too short to apply the '
-                #     'configured smoothing_steps. A simple linear ramp '
-                #     'was created instead.')
-                num_of_linear_steps = np.rint((v_max - v_min) / linear_v_step)
-                ramp = np.linspace(v_min, v_max, num_of_linear_steps)
-
-            else:
-
-                num_of_linear_steps = np.rint((v_max_linear - v_min_linear) / linear_v_step)
-
-                # Calculate voltage step values for smooth acceleration part of ramp
-                smooth_curve = np.array(
-                    [sum(
-                        n * linear_v_step / smoothing_range for n in range(1, N)
-                        ) for N in range(1, smoothing_range)
-                    ])
-
-                accel_part = v_min + smooth_curve
-                decel_part = v_max - smooth_curve[::-1]
-
-                linear_part = np.linspace(v_min_linear, v_max_linear, num_of_linear_steps)
-
-                ramp = np.hstack((accel_part, linear_part, decel_part))
-
-        # Reverse if downwards ramp is required
-        if voltage2 < voltage1:
-            ramp = ramp[::-1]
-
-        # Put the voltage ramp into a scan line for the hardware (4-dimension)
-        spatial_pos = self._scanning_device.get_scanner_position()
-
-        scan_line = np.vstack((
-            np.ones((len(ramp), )) * spatial_pos[0],
-            np.ones((len(ramp), )) * spatial_pos[1],
-            np.ones((len(ramp), )) * spatial_pos[2],
-            ramp
-            ))
-
-        return scan_line
-
-
-
-    def kill_scanner(self):
-        """Closing the scanner device.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        try:
-            self._scanning_device.close_scanner()
-            self._scanning_device.close_scanner_clock()
-        except Exception as e:
-            self.log.exception('Could not even close the scanner, giving up.')
-            raise e
-        try:
-            if self._scanning_device.module_state.can('unlock'):
-                self._scanning_device.module_state.unlock()
-        except:
-            self.log.exception('Could not unlock scanning device.')
-        return 0
-
-    def save_data(self, tag=None, colorscale_range=None, percentile_range=None):
+    @QtCore.Slot(object, object)    
+    def _save_data(self, colorscale_range=None, percentile_range=None):
         """ Save the counter trace data and writes it to a file.
 
         @return int: error code (0:OK, -1:error)
         """
-        if tag is None:
-            tag = ''
 
         self._saving_stop_time = time.time()
 
-        filepath = self._save_logic.get_path_for_module(module_name='laserscannerning')
-        filepath2 = self._save_logic.get_path_for_module(module_name='laserscannerning')
-        filepath3 = self._save_logic.get_path_for_module(module_name='laserscannerning')
+        self.signal_save_started.emit()
+        filepath = self._save_logic.get_path_for_module('sps_laserscanner')
         timestamp = datetime.datetime.now()
 
-        if len(tag) > 0:
-            filelabel = tag + '_volt_data'
-            filelabel2 = tag + '_volt_data_raw_trace'
-            filelabel3 = tag + '_volt_data_raw_retrace'
-        else:
-            filelabel = 'volt_data'
-            filelabel2 = 'volt_data_raw_trace'
-            filelabel3 = 'volt_data_raw_retrace'
-
-        # prepare the data in a dict or in an OrderedDict:
-        data = OrderedDict()
-        data['frequency (Hz)'] = self.plot_x
-        data['trace count data (counts/s)'] = self.plot_y
-        # data['trace count data (counts/s)'] = self.plot_y_2
-        data['retrace count data (counts/s)'] = self.plot_y2
-
-        data2 = OrderedDict()
-        data2['count data (counts/s)'] = self.scan_matrix[:self._scan_counter_up, :]
-
-        data3 = OrderedDict()
-        data3['count data (counts/s)'] = self.scan_matrix2[:self._scan_counter_down, :]
-
         parameters = OrderedDict()
-        parameters['Number of frequency sweeps (#)'] = self._scan_counter_up
-        parameters['Start Voltage (V)'] = self.scan_range[0]
-        parameters['Stop Voltage (V)'] = self.scan_range[1]
-        parameters['Scan speed [V/s]'] = self._scan_speed
+        
+        parameters['Number of frequency sweeps (#)'] = self._number_of_repeats
+        parameters['Start Position (MHz)'] = self._scan_range[0]
+        parameters['Stop Position (MHz)'] = self._scan_range[1]
+        parameters['Scan speed'] = self._scan_speed
+        parameters['Resolution'] = self._resolution
         parameters['Clock Frequency (Hz)'] = self._clock_frequency
 
-        fig = self.draw_figure(
-            self.scan_matrix,
-            self.plot_x,
-            self.plot_y,
-            self.fit_x,
-            self.fit_y,
-            cbar_range=colorscale_range,
-            percentile_range=percentile_range)
+        if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+            parameters['custom scan mode'] = self._custom_scan_mode.name
+            parameters['custom scan values'] = self._custom_scan_values.name
+            parameters['custom scan sweeps per action'] = self._custom_scan_sweeps_per_action
+            parameters['X image min (m)'] = self._custom_scan_x_range[0]
+            parameters['X image min (m)'] = self._custom_scan_x_range[1]
+            parameters['X image resolution'] = self._custom_scan_order_1_resolution
+            parameters['Y image min (m)'] = self._custom_scan_y_range[0]
+            parameters['Y image min (m)'] = self._custom_scan_y_range[1]
+            parameters['Y image resolution'] = self._custom_scan_order_2_resolution
+            parameters['XY Image at z position (m)'] = self._current_z
+            parameters['Order 3 counter'] = self._order_3_counter
 
-        fig2 = self.draw_figure(
-            self.scan_matrix2,
-            self.plot_x,
-            self.plot_y2,
-            self.fit_x,
-            self.fit_y,
-            cbar_range=colorscale_range,
-            percentile_range=percentile_range)
+        plot_x = self.trace_scan_matrix[:, :, 0]
+        fit_y = np.zeros(len(plot_x))
+        figs = {ch: self.draw_figure(matrix_data=self.trace_scan_matrix[:, :, 1 + n],
+                                     freq_data = plot_x,
+                                     count_data = self.trace_plot_y[-1,n],
+                                     fit_freq_vals = plot_x,
+                                     fit_count_vals = fit_y,
+                                     cbar_range=colorscale_range,
+                                     percentile_range=percentile_range,)
+                for n, ch in enumerate(self.get_scanner_count_channels())}
+        # Save the image data and figure
+        for n, ch in enumerate(self.get_scanner_count_channels()):
+            # data for the text-array "image":
+            image_data = OrderedDict()
+            image_data['Trace image data.\n'] = self.trace_scan_matrix[:, :, 1 + n]
 
-        self._save_logic.save_data(
-            data,
-            filepath=filepath,
-            parameters=parameters,
-            filelabel=filelabel,
-            fmt='%.6e',
-            delimiter='\t',
-            timestamp=timestamp
-        )
+            filelabel = 'Laserscanner_trace_image_{0}'.format(ch.replace('/', ''))
+            self._save_logic.save_data(image_data,
+                                       filepath=filepath,
+                                       timestamp=timestamp,
+                                       parameters=parameters,
+                                       filelabel=filelabel,
+                                       fmt='%.6e',
+                                       delimiter='\t',
+                                       plotfig=figs[ch])
 
-        self._save_logic.save_data(
-            data2,
-            filepath=filepath2,
-            parameters=parameters,
-            filelabel=filelabel2,
-            fmt='%.6e',
-            delimiter='\t',
-            timestamp=timestamp,
-            plotfig=fig
-        )
 
-        self._save_logic.save_data(
-            data3,
-            filepath=filepath3,
-            parameters=parameters,
-            filelabel=filelabel3,
-            fmt='%.6e',
-            delimiter='\t',
-            timestamp=timestamp,
-            plotfig=fig2
-        )
+        
+        plot_x = self.retrace_scan_matrix[:, :, 0]
+        fit_y = np.zeros(len(plot_x))
+        figs = {ch: self.draw_figure(matrix_data=self.retrace_scan_matrix[:, :, 1 + n],
+                                     freq_data = plot_x,
+                                     count_data = self.retrace_plot_y[-1,n],
+                                     fit_freq_vals = plot_x,
+                                     fit_count_vals = fit_y,
+                                     cbar_range=colorscale_range,
+                                     percentile_range=percentile_range,)
+                for n, ch in enumerate(self.get_scanner_count_channels())}
+        # Save the image data and figure
+        for n, ch in enumerate(self.get_scanner_count_channels()):
+            # data for the text-array "image":
+            image_data = OrderedDict()
+            image_data['Rerace image data.\n'] = self.retrace_scan_matrix[:, :, 1 + n]
 
-        self.log.info('Laser Scan saved to:\n{0}'.format(filepath))
+            filelabel = 'Laserscanner_retrace_image_{0}'.format(ch.replace('/', ''))
+            self._save_logic.save_data(image_data,
+                                       filepath=filepath,
+                                       timestamp=timestamp,
+                                       parameters=parameters,
+                                       filelabel=filelabel,
+                                       fmt='%.6e',
+                                       delimiter='\t',
+                                       plotfig=figs[ch])
+
+            # prepare the full raw data in an OrderedDict:
+        data = OrderedDict()
+        data['Frequency (MHz)'] = self.trace_scan_matrix[:, :, 0].flatten()
+
+        for n, ch in enumerate(self.get_scanner_count_channels()):
+            if ch.lower().startswith('ch') or ch.lower().startswith('all'):
+                data['count rate {0} (Hz)'.format(ch)] = self.trace_scan_matrix[:, :, 1 + n].flatten()
+            elif ch.lower().startswith('ai'):
+                data['signal {0} (V)'.format(ch)] = self.trace_scan_matrix[:, :, 1 + n].flatten()
+            else:
+                data['signal {0} (a.u.)'.format(ch)] = self.trace_scan_matrix[:, :, 1 + n].flatten()
+
+        # Save the raw data to file
+        filelabel = 'laser_scanner_trace_raw_data'
+        self._save_logic.save_data(data,
+                                   filepath=filepath,
+                                   timestamp=timestamp,
+                                   parameters=parameters,
+                                   filelabel=filelabel,
+                                   fmt='%.6e',
+                                   delimiter='\t')
+
+        self.log.debug('Laserscanner data saved.')
+        self.signal_data_saved.emit()
+
         return 0
 
     def draw_figure(self, matrix_data, freq_data, count_data, fit_freq_vals, fit_count_vals, cbar_range=None, percentile_range=None):

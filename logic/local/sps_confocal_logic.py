@@ -1119,11 +1119,11 @@ class ConfocalLogic(GenericLogic):
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
             if ch.lower().startswith('ch') or ch.lower().startswith('all'):
-                data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['count rate {0} (Hz)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
             elif ch.lower().startswith('ai'):
-                data['signal {0} (V)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['signal {0} (V)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
             else:
-                data['signal {0} (a.u.)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['signal {0} (a.u.)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'confocal_depth_data'
