@@ -53,9 +53,6 @@ class ConfocalHistoryEntry(QtCore.QObject):
         self.depth_scan_dir_is_xz = True
         self.depth_img_is_xz = True
 
-        self.xy_line_pos = 0
-        self.depth_line_pos = 0
-
         # Reads in the maximal scanning range. The unit of that scan range is meters!
         self.x_range = confocal._scanning_device.get_position_range()[0]
         self.y_range = confocal._scanning_device.get_position_range()[1]
@@ -283,6 +280,7 @@ class ConfocalLogic(GenericLogic):
     signal_tilt_correction_update = QtCore.Signal()
     signal_draw_figure_completed = QtCore.Signal()
     signal_position_changed = QtCore.Signal()
+    signal_scan_range_updated = QtCore.Signal()
 
     _signal_save_xy = QtCore.Signal(object, object)
     _signal_save_depth = QtCore.Signal(object, object)
@@ -629,7 +627,6 @@ class ConfocalLogic(GenericLogic):
         return 0
 
     def start_oneline_scanner(self):
-        self.module_state.lock()
         self._scanning_device.module_state.lock()
 
         clock_status = self._scanning_device.set_up_scanner_clock(
@@ -747,6 +744,7 @@ class ConfocalLogic(GenericLogic):
         lsz = np.linspace(old_pos_array[2], pos_array[2], gs)
         lsa = np.linspace(old_pos_array[3], pos_array[3], gs)
         move_line = np.vstack([lsx, lsy, lsz, lsa])
+        self.module_state.lock()
         self.start_oneline_scanner()
         move_line_counts = self._scanning_device.scan_line(move_line)
         self.kill_scanner()

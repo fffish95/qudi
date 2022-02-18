@@ -437,6 +437,7 @@ class ConfocalGui(GUIBase):
         self._scanning_logic.signal_history_event.connect(self.change_x_image_range)
         self._scanning_logic.signal_history_event.connect(self.change_y_image_range)
         self._scanning_logic.signal_history_event.connect(self.change_z_image_range)
+        self._scanning_logic.signal_scan_range_updated.connect(self.update_scan_range_inputs)
 
         # Get initial tilt correction values
         self._mw.action_TiltCorrection.setChecked(
