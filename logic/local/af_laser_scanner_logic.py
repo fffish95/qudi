@@ -25,7 +25,6 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 from collections import OrderedDict
 import datetime
-
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -115,6 +114,18 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         laserscanner._scan_continuable = self.scan_continuable
         laserscanner._custom_scan = False # To not init the plots in confocal logic
         laserscanner._custom_scan_mode = self.custom_scan_mode
+        laserscanner._custom_scan_values = self.custom_scan_values
+        laserscanner._custom_scan_sweeps_per_action = self.custom_scan_sweeps_per_action
+        laserscanner._custom_scan_x_range = np.copy(self.custom_scan_x_range)
+        laserscanner._custom_scan_y_range = np.copy(self.custom_scan_y_range)
+        laserscanner._custom_scan_z_range = np.copy(self.custom_scan_z_range)
+        laserscanner._custom_scan_x_order = self.custom_scan_x_order
+        laserscanner._custom_scan_y_order = self.custom_scan_y_order
+        laserscanner._custom_scan_z_order = self.custom_scan_z_order
+        laserscanner._custom_scan_order_1_resolution = self.custom_scan_order_1_resolution
+        laserscanner._custom_scan_order_2_resolution = self.custom_scan_order_2_resolution
+        laserscanner._custom_scan_order_3_resolution = self.custom_scan_order_3_resolution
+
 
         laserscanner.initialise_data_matrix()
         try:
@@ -128,12 +139,15 @@ class LaserScannerHistoryEntry(QtCore.QObject):
                 laserscanner.trace_plot_y = np.copy(self.trace_plot_y)
             if laserscanner.retrace_plot_y.shape == self.retrace_plot_y.shape:
                 laserscanner.retrace_plot_y = np.copy(self.retrace_plot_y)
+            if laserscanner.plot_x.shape == self.plot_x.shape:
+                laserscanner.plot_x = np.copy(self.plot_x)
         except AttributeError:
             self.trace_scan_matrix = np.copy(laserscanner.trace_scan_matrix)
             self.retrace_scan_matrix = np.copy(laserscanner.retrace_scan_matrix)
             self.trace_plot_y_sum = np.copy(laserscanner.trace_plot_y_sum)
             self.trace_plot_y = np.copy(laserscanner.trace_plot_y)
             self.retrace_plot_y = np.copy(laserscanner.retrace_plot_y)
+            self.plot_x = np.copy(laserscanner.plot_x)
         laserscanner._custom_scan = self.custom_scan
 
     def snapshot(self, laserscanner):
@@ -150,12 +164,25 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         self.scan_continuable = laserscanner._scan_continuable
         self.custom_scan = laserscanner._custom_scan
         self.custom_scan_mode = laserscanner._custom_scan_mode
+        self.custom_scan_values = laserscanner._custom_scan_values 
+        self.custom_scan_sweeps_per_action = laserscanner._custom_scan_sweeps_per_action
+        self.custom_scan_x_range = np.copy(laserscanner._custom_scan_x_range)
+        self.custom_scan_y_range = np.copy(laserscanner._custom_scan_y_range)
+        self.custom_scan_z_range = np.copy(laserscanner._custom_scan_z_range)
+        self.custom_scan_x_order = laserscanner._custom_scan_x_order
+        self.custom_scan_y_order = laserscanner._custom_scan_y_order
+        self.custom_scan_z_order = laserscanner._custom_scan_z_order
+        self.custom_scan_order_1_resolution = laserscanner._custom_scan_order_1_resolution
+        self.custom_scan_order_2_resolution = laserscanner._custom_scan_order_2_resolution
+        self.custom_scan_order_3_resolution = laserscanner._custom_scan_order_3_resolution
+
 
         self.trace_scan_matrix = np.copy(laserscanner.trace_scan_matrix)
         self.retrace_scan_matrix = np.copy(laserscanner.retrace_scan_matrix)
         self.trace_plot_y_sum = np.copy(laserscanner.trace_plot_y_sum)
         self.trace_plot_y = np.copy(laserscanner.trace_plot_y)
         self.retrace_plot_y = np.copy(laserscanner.retrace_plot_y)
+        self.plot_x = np.copy(laserscanner.plot_x)
 
     def serialize(self):
         """ Give out a dictionary that can be saved via the usua means """
@@ -169,12 +196,25 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         serialized['scan_continuable'] = self.scan_continuable
         serialized['custom_scan'] = self.custom_scan
         serialized['custom_scan_mode'] = self.custom_scan_mode
+        serialized['custom_scan_values'] = self.custom_scan_values
+        serialized['custom_scan_sweeps_per_action'] = self.custom_scan_sweeps_per_action
+        serialized['custom_scan_x_range'] = list(self.custom_scan_x_range)
+        serialized['custom_scan_y_range'] = list(self.custom_scan_y_range)
+        serialized['custom_scan_z_range'] = list(self.custom_scan_z_range)
+        serialized['custom_scan_x_order'] = self.custom_scan_x_order
+        serialized['custom_scan_y_order'] = self.custom_scan_y_order
+        serialized['custom_scan_z_order'] = self.custom_scan_z_order
+        serialized['custom_scan_order_1_resolution'] = self.custom_scan_order_1_resolution
+        serialized['custom_scan_order_2_resolution'] = self.custom_scan_order_2_resolution
+        serialized['custom_scan_order_3_resolution'] = self.custom_scan_order_3_resolution
+
 
         serialized['trace_scan_matrix'] = self.trace_scan_matrix
         serialized['retrace_scan_matrix'] = self.retrace_scan_matrix
         serialized['trace_plot_y_sum'] = self.trace_plot_y_sum
         serialized['trace_plot_y'] = self.trace_plot_y 
         serialized['retrace_plot_y'] = self.retrace_plot_y
+        serialized['plot_x'] = self.plot_x
         return serialized
 
     def deserialize(self, serialized):
@@ -200,6 +240,29 @@ class LaserScannerHistoryEntry(QtCore.QObject):
             self.custom_scan = serialized['custom_scan']
         if 'custom_scan_mode' in serialized and isinstance(serialized['custom_scan_mode'], CustomScanMode):
             self.custom_scan_mode = serialized['custom_scan_mode']
+        if 'custom_scan_values' in serialized and isinstance(serialized['custom_scan_values'], CustomScanXYPlotValues):
+            self.custom_scan_values = serialized['custom_scan_values']
+        if 'custom_scan_sweeps_per_action' in serialized:
+            self.custom_scan_sweeps_per_action = serialized['custom_scan_sweeps_per_action']
+        if 'custom_scan_x_range' in serialized and len(serialized['custom_scan_x_range']) ==2:
+            self.custom_scan_x_rangen = serialized['custom_scan_x_range']
+        if 'custom_scan_y_range' in serialized and len(serialized['custom_scan_y_range']) ==2:
+            self.custom_scan_y_rangen = serialized['custom_scan_y_range']
+        if 'custom_scan_z_range' in serialized and len(serialized['custom_scan_z_range']) ==2:
+            self.custom_scan_z_rangen = serialized['custom_scan_z_range']
+        if 'custom_scan_x_order' in serialized:
+            self.custom_scan_x_order = serialized['custom_scan_x_order']
+        if 'custom_scan_y_order' in serialized:
+            self.custom_scan_y_order = serialized['custom_scan_y_order']
+        if 'custom_scan_z_order' in serialized:
+            self.custom_scan_z_order = serialized['custom_scan_z_order']
+        if 'custom_scan_order_1_resolution' in serialized:
+            self.custom_scan_order_1_resolution = serialized['custom_scan_order_1_resolution']
+        if 'custom_scan_order_2_resolution' in serialized:
+            self.custom_scan_order_2_resolution = serialized['custom_scan_order_2_resolution']
+        if 'custom_scan_order_3_resolution' in serialized:
+            self.custom_scan_order_3_resolution = serialized['custom_scan_order_3_resolution']
+
         
         if 'trace_scan_matrix' in serialized:
             self.trace_scan_matrix = serialized['trace_scan_matrix']
@@ -211,6 +274,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
             self.trace_plot_y = serialized['trace_plot_y']
         if 'retrace_plot_y' in serialized:
             self.retrace_plot_y = serialized['retrace_plot_y']
+        if 'plot_x' in serialized:
+            self.plot_x = serialized['plot_x']
 
 
 
@@ -227,23 +292,22 @@ class LaserScannernernerLogic(GenericLogic):
     # status vars
     _smoothing_steps = StatusVar(default=10)
     _order_3_counter = StatusVar(default=0)
-    max_history_length = StatusVar(default=50)
+    max_history_length = StatusVar(default=10)
 
     # signals
     signal_start_scanning = QtCore.Signal(str)
-    signal_continue_scanning = QtCore.Signal()
+    signal_continue_scanning = QtCore.Signal(str)
     signal_scan_lines_next = QtCore.Signal()
-    signal_plots_updated = QtCore.Signal()
+    signal_trace_plots_updated = QtCore.Signal()
+    signal_retrace_plots_updated = QtCore.Signal()
     signal_change_position = QtCore.Signal(str)
     signal_save_started = QtCore.Signal()
     signal_data_saved = QtCore.Signal()
-    signal_draw_figure_completed = QtCore.Signal()
-    signal_position_changed = QtCore.Signal()
     signal_clock_frequency_updated = QtCore.Signal()
+    siganl_custom_scan_range_updated = QtCore.Signal()
 
     _signal_save_data = QtCore.Signal(object, object)
 
-    sigPlotsInitialized = QtCore.Signal()
     signal_history_event = QtCore.Signal()
 
 
@@ -320,7 +384,8 @@ class LaserScannernernerLogic(GenericLogic):
 
         self.history_index = len(self.history) - 1
         self.history[self.history_index].restore(self)
-        self.signal_plots_updated.emit()
+        self.signal_trace_plots_updated.emit()
+        self.signal_retrace_plots_updated.emit()
         # clock frequency is not in status variables, set clock frequency
         self.set_clock_frequency()
         self._change_position()
@@ -334,7 +399,8 @@ class LaserScannernernerLogic(GenericLogic):
         if self.history_index < len(self.history) - 1:
             self.history_index += 1
             self.history[self.history_index].restore(self)
-            self.signal_plots_updated.emit()
+            self.signal_trace_plots_updated.emit()
+            self.signal_retrace_plots_updated.emit()
             # clock frequency is not in status variables, set clock frequency
             self.set_clock_frequency()
             self._change_position()
@@ -348,7 +414,8 @@ class LaserScannernernerLogic(GenericLogic):
         if self.history_index > 0:
             self.history_index -= 1
             self.history[self.history_index].restore(self)
-            self.signal_plots_updated.emit()
+            self.signal_trace_plots_updated.emit()
+            self.signal_retrace_plots_updated.emit()
             # clock frequency is not in status variables, set clock frequency
             self.set_clock_frequency()
             self._change_position()
@@ -383,9 +450,9 @@ class LaserScannernernerLogic(GenericLogic):
         self.signal_start_scanning.emit(tag)
         return 0
 
-    def continue_scanning(self):
+    def continue_scanning(self, tag = 'logic'):
         self._move_to_start = True
-        self.signal_continue_scanning.emit()
+        self.signal_continue_scanning.emit(tag)
         return 0
     
     def stop_scanning(self):
@@ -403,12 +470,22 @@ class LaserScannernernerLogic(GenericLogic):
         self._confocal_logic.image_z_range[1] = self._custom_scan_z_range[1]
         self._confocal_logic.signal_scan_range_updated.emit()
 
+    def get_confocal_scan_range(self):
+        self._custom_scan_x_range[0] = self._confocal_logic.image_x_range[0]
+        self._custom_scan_x_range[1] = self._confocal_logic.image_x_range[1]
+        self._custom_scan_y_range[0] = self._confocal_logic.image_y_range[0]
+        self._custom_scan_y_range[1] = self._confocal_logic.image_y_range[1]
+        self._custom_scan_z_range[0] = self._confocal_logic.image_z_range[0]
+        self._custom_scan_z_range[1] = self._confocal_logic.image_z_range[1]
+        self.siganl_custom_scan_range_updated.emit()
+
     def initialise_data_matrix(self): 
-        self.trace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 2 + len(self.get_scanner_count_channels())))
-        self.retrace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 2 + len(self.get_scanner_count_channels())))
+        self.trace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 1 + len(self.get_scanner_count_channels())))
+        self.retrace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 1 + len(self.get_scanner_count_channels())))
         self.trace_plot_y_sum = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
         self.trace_plot_y = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
         self.retrace_plot_y = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
+        self.plot_x = np.linspace(self._scan_range[0], self._scan_range[1], self._resolution)
 
 
         if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
@@ -609,7 +686,7 @@ class LaserScannernernerLogic(GenericLogic):
                 position_max_linear = position_start - position_range_of_accel
 
             if (position_max_linear - position_min_linear) / linear_position_step < self._smoothing_steps:
-                ramp = np.linspace(position_start,position_end, self._resolution)
+                ramp = np.linspace(position_start,position_end, 2*self._smoothing_steps)
             else:
                 num_of_linear_steps = np.rint(self._resolution - 2*self._smoothing_steps)
 
@@ -680,7 +757,8 @@ class LaserScannernernerLogic(GenericLogic):
                 self.kill_scanner()
                 self.stopRequested = False
                 self.module_state.unlock()
-                self.siganl_plots_updated.emit()
+                self.signal_trace_plots_updated.emit()
+                self.signal_retrace_plots_updated.emit()
                 if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
                     self.custom_xyplot_stop()
                 self._change_position()
@@ -691,8 +769,14 @@ class LaserScannernernerLogic(GenericLogic):
                 if len(self.history) > self.max_history_length:
                     self.history.pop(0)
                 self.history_index = len(self.history) - 1
+                # clock frequency is not in status variables, set clock frequency
+                self.set_clock_frequency()
+                self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
+                self.signal_change_position.emit('scan')
                 self.signal_history_event.emit()
                 return
+
+
 
         try:
             if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
@@ -710,22 +794,24 @@ class LaserScannernernerLogic(GenericLogic):
                 self.stop_scanning()
                 self.signal_scan_lines_next.emit()
                 return
-            
+            self.trace_scan_matrix[self._scan_counter, :, 0] = trace_line[-1]
+            self.trace_scan_matrix[self._scan_counter, :, 1:] = counts_on_trace_line
+            self.trace_plot_y_sum +=  counts_on_trace_line
+            self.trace_plot_y = counts_on_trace_line
+            self.signal_trace_plots_updated.emit()
+
+
             retrace_line = self._generate_ramp(self._scan_range[1], self._scan_range[0])
             counts_on_retrace_line = self._scanning_device.scan_line(retrace_line, pixel_clock = pixel_clock)
             if np.any(counts_on_retrace_line == -1):
                 self.stop_scanning()
                 self.signal_scan_lines_next.emit()
                 return
-            self.trace_scan_matrix[self._scan_counter, :, 0] = trace_line[-1]
-            self.retrace_scan_matrix[self._scan_counter, :, 0] = retrace_line[-1]
-            self.trace_scan_matrix[self._scan_counter, :, 1:] = counts_on_trace_line
-            self.retrace_scan_matrix[self._scan_counter, :, 1:] = counts_on_retrace_line
-            self.trace_plot_y_sum[self._scan_counter, :] = self.trace_plot_y_sum[self._scan_counter-1, :] + counts_on_trace_line
-            self.trace_plot_y[self._scan_counter, :] = counts_on_trace_line
-            self.retrace_plot_y[self._scan_counter, :] = counts_on_retrace_line
             
-            self.signal_plots_updated.emit()
+            self.retrace_scan_matrix[self._scan_counter, :, 0] = retrace_line[-1]            
+            self.retrace_scan_matrix[self._scan_counter, :, 1:] = counts_on_retrace_line
+            self.retrace_plot_y = counts_on_retrace_line        
+            self.signal_retrace_plots_updated.emit()
 
             # next line in scan
             self._scan_counter += 1
@@ -759,7 +845,7 @@ class LaserScannernernerLogic(GenericLogic):
         if self._scan_counter % self._custom_scan_sweeps_per_action == 0:
             data_array = []
             for i in range(0, self._custom_scan_sweeps_per_action):
-                data_array.append(self.trace_plot_y[self._scan_counter-1-i,:])
+                data_array.append(self.trace_scan_matrix[self._scan_counter-1-i,:, 1:])
 
             for s_ch in range(0,len(self.get_scanner_count_channels())):
                 if self._custom_scan_values == CustomScanXYPlotValues.MINIMUM:
@@ -834,7 +920,7 @@ class LaserScannernernerLogic(GenericLogic):
         self._saving_stop_time = time.time()
 
         self.signal_save_started.emit()
-        filepath = self._save_logic.get_path_for_module('sps_laserscanner')
+        filepath = self._save_logic.get_path_for_module('af_laserscanner')
         timestamp = datetime.datetime.now()
 
         parameters = OrderedDict()
@@ -859,12 +945,11 @@ class LaserScannernernerLogic(GenericLogic):
             parameters['XY Image at z position (m)'] = self._current_z
             parameters['Order 3 counter'] = self._order_3_counter
 
-        plot_x = self.trace_scan_matrix[:, :, 0]
-        fit_y = np.zeros(len(plot_x))
+        fit_y = np.zeros(len(self.plot_x))
         figs = {ch: self.draw_figure(matrix_data=self.trace_scan_matrix[:, :, 1 + n],
-                                     freq_data = plot_x,
-                                     count_data = self.trace_plot_y[-1,n],
-                                     fit_freq_vals = plot_x,
+                                     freq_data = self.plot_x,
+                                     count_data = self.trace_plot_y[n,:],
+                                     fit_freq_vals = self.plot_x,
                                      fit_count_vals = fit_y,
                                      cbar_range=colorscale_range,
                                      percentile_range=percentile_range,)
@@ -887,12 +972,12 @@ class LaserScannernernerLogic(GenericLogic):
 
 
         
-        plot_x = self.retrace_scan_matrix[:, :, 0]
-        fit_y = np.zeros(len(plot_x))
+
+        fit_y = np.zeros(len(self.plot_x))
         figs = {ch: self.draw_figure(matrix_data=self.retrace_scan_matrix[:, :, 1 + n],
-                                     freq_data = plot_x,
-                                     count_data = self.retrace_plot_y[-1,n],
-                                     fit_freq_vals = plot_x,
+                                     freq_data = self.plot_x,
+                                     count_data = self.retrace_plot_y[n,:],
+                                     fit_freq_vals = self.plot_x,
                                      fit_count_vals = fit_y,
                                      cbar_range=colorscale_range,
                                      percentile_range=percentile_range,)

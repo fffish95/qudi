@@ -19,6 +19,7 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+from termios import PARODD
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -674,7 +675,7 @@ class LaserscannerGui(GUIBase):
 
     def save_configuration(self):
         """ Save current statusvariable to the file"""
-        defaultconfigpath = self._save_logic.get_path_for_module(module_name='sps_laserscanner_cfg')
+        defaultconfigpath = self._save_logic.get_path_for_module(module_name='af_laserscanner_cfg')
         filename = QtWidgets.QFileDialog.getSaveFileName(
             self._mw,
             'Save Configuration',
@@ -693,7 +694,7 @@ class LaserscannerGui(GUIBase):
     def load_configuration(self):
         """ Load statusvariable to the program"""
         try:
-            defaultconfigpath = self._save_logic.get_path_for_module(module_name='sps_laserscanner_cfg')
+            defaultconfigpath = self._save_logic.get_path_for_module(module_name='af_laserscanner_cfg')
             filename = QtWidgets.QFileDialog.getOpenFileName(
                 self._mw,
                 'Load Configuration',
