@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1862</width>
-    <height>2671</height>
+    <width>2027</width>
+    <height>2674</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -30,8 +30,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1862</width>
-     <height>21</height>
+     <width>2027</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -89,15 +89,15 @@
   </widget>
   <widget class="QDockWidget" name="scan_control_DockWidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+    <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
-     <width>920</width>
-     <height>145</height>
+     <width>948</width>
+     <height>112</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -256,10 +256,16 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="Trace_dockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="minimumSize">
     <size>
-     <width>1500</width>
-     <height>1500</height>
+     <width>1850</width>
+     <height>850</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -271,25 +277,22 @@
    <widget class="QWidget" name="dockWidgetContents">
     <property name="minimumSize">
      <size>
-      <width>2000</width>
-      <height>2000</height>
+      <width>1850</width>
+      <height>650</height>
      </size>
     </property>
-    <widget class="QWidget" name="layoutWidget">
+    <widget class="QWidget" name="">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>3</y>
-       <width>1689</width>
-       <height>594</height>
+       <x>2</x>
+       <y>24</y>
+       <width>1913</width>
+       <height>799</height>
       </rect>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="sizeConstraint">
-       <enum>QLayout::SetDefaultConstraint</enum>
-      </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout">
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="PlotWidget" name="trace_scan_matrix_ViewWidget">
           <property name="sizePolicy">
@@ -298,190 +301,201 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="PlotWidget" name="trace_plot_y_sum_ViewWidget">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>1</horstretch>
-            <verstretch>1</verstretch>
-           </sizepolicy>
+          <property name="minimumSize">
+           <size>
+            <width>1800</width>
+            <height>350</height>
+           </size>
           </property>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetDefaultConstraint</enum>
-          </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QLabel" name="linenumLabel">
-            <property name="minimumSize">
-             <size>
-              <width>60</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Line No.</string>
-            </property>
-           </widget>
+           <widget class="QComboBox" name="channel_ComboBox"/>
           </item>
           <item>
-           <widget class="QSpinBox" name="linenumspinBox">
-            <property name="minimumSize">
-             <size>
-              <width>60</width>
-              <height>0</height>
-             </size>
+           <widget class="QSpinBox" name="cb_max_SpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>0</number>
             </property>
             <property name="maximum">
-             <number>999999</number>
+             <number>999999999</number>
+            </property>
+            <property name="value">
+             <number>100000</number>
             </property>
            </widget>
           </item>
           <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QLabel" name="percentLabel2">
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;% :&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="cb_high_percentile_SpinBox">
+              <property name="maximum">
+               <number>100</number>
+              </property>
+              <property name="value">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="PlotWidget" name="cb_ViewWidget">
+            <property name="maximumSize">
              <size>
-              <width>40</width>
-              <height>20</height>
+              <width>100</width>
+              <height>16777215</height>
              </size>
             </property>
-           </spacer>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QLabel" name="percentLabel1">
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;% :&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="cb_low_percentile_SpinBox">
+              <property name="maximum">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="cb_min_SpinBox">
+            <property name="maximum">
+             <number>999999999</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="cb_centiles_RadioButton">
+            <property name="text">
+             <string>&amp;Centiles</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroup</string>
+            </attribute>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="cb_manual_RadioButton">
+            <property name="text">
+             <string>Man&amp;ual</string>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroup</string>
+            </attribute>
+           </widget>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="PlotWidget" name="trace_plot_y_ViewWidget">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>1</horstretch>
-            <verstretch>1</verstretch>
-           </sizepolicy>
-          </property>
-         </widget>
         </item>
        </layout>
       </item>
       <item>
-       <layout class="QGridLayout" name="gridLayout">
-        <item row="1" column="0" colspan="2">
-         <widget class="QSpinBox" name="cb_max_SpinBox">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimum">
-           <number>0</number>
-          </property>
-          <property name="maximum">
-           <number>999999999</number>
-          </property>
-          <property name="value">
-           <number>100000</number>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QSpinBox" name="cb_high_percentile_SpinBox">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="value">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="percentLabel1">
-          <property name="maximumSize">
+       <widget class="PlotWidget" name="trace_plot_y_sum_ViewWidget">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>1</horstretch>
+          <verstretch>1</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QLabel" name="linenumLabel">
+          <property name="minimumSize">
            <size>
-            <width>30</width>
-            <height>16777215</height>
+            <width>60</width>
+            <height>0</height>
            </size>
           </property>
           <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;% :&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>Line No.</string>
           </property>
          </widget>
         </item>
-        <item row="7" column="0" colspan="2">
-         <widget class="QRadioButton" name="cb_manual_RadioButton">
-          <property name="text">
-           <string>Man&amp;ual</string>
-          </property>
-          <attribute name="buttonGroup">
-           <string notr="true">buttonGroup</string>
-          </attribute>
-         </widget>
-        </item>
-        <item row="4" column="1">
-         <widget class="QSpinBox" name="cb_low_percentile_SpinBox">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="0" colspan="2">
-         <widget class="QRadioButton" name="cb_centiles_RadioButton">
-          <property name="text">
-           <string>&amp;Centiles</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-          <attribute name="buttonGroup">
-           <string notr="true">buttonGroup</string>
-          </attribute>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="percentLabel2">
-          <property name="maximumSize">
+        <item>
+         <widget class="QSpinBox" name="linenumspinBox">
+          <property name="minimumSize">
            <size>
-            <width>30</width>
-            <height>16777215</height>
+            <width>60</width>
+            <height>0</height>
            </size>
           </property>
-          <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;% :&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <property name="maximum">
+           <number>999999</number>
           </property>
          </widget>
         </item>
-        <item row="3" column="0" colspan="2">
-         <widget class="PlotWidget" name="cb_ViewWidget">
-          <property name="maximumSize">
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Expanding</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
            <size>
-            <width>100</width>
-            <height>16777215</height>
+            <width>1648</width>
+            <height>20</height>
            </size>
           </property>
-         </widget>
-        </item>
-        <item row="5" column="0" colspan="2">
-         <widget class="QSpinBox" name="cb_min_SpinBox">
-          <property name="maximum">
-           <number>999999999</number>
-          </property>
-          <property name="value">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0" colspan="2">
-         <widget class="QComboBox" name="channel_ComboBox"/>
+         </spacer>
         </item>
        </layout>
+      </item>
+      <item>
+       <widget class="PlotWidget" name="trace_plot_y_ViewWidget">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>1</horstretch>
+          <verstretch>1</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -1066,7 +1080,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Scan control</string>
+    <string>&amp;Scan control</string>
    </property>
    <property name="toolTip">
     <string>Shortcut:Alt+S</string>
@@ -1083,7 +1097,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Trace</string>
+    <string>&amp;Trace</string>
    </property>
    <property name="toolTip">
     <string>Shortcut: Alt+T</string>
@@ -1097,7 +1111,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Retrace</string>
+    <string>&amp;Retrace</string>
    </property>
    <property name="toolTip">
     <string>Shortcut: Alt+R</string>
@@ -1111,7 +1125,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Custom scan</string>
+    <string>&amp;Custom scan</string>
    </property>
   </action>
  </widget>
@@ -1157,6 +1171,134 @@
     <hint type="destinationlabel">
      <x>531</x>
      <y>347</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom_scan_dockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionCustom_scan_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1556</x>
+     <y>2467</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Retrace_dockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionRetrace_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>623</x>
+     <y>2467</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scan_control_DockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionScan_control_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>930</x>
+     <y>152</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Trace_dockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionTrace_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>999</x>
+     <y>1242</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCustom_scan_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>custom_scan_dockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1556</x>
+     <y>2467</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRetrace_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>Retrace_dockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>623</x>
+     <y>2467</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionTrace_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>Trace_dockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>999</x>
+     <y>1242</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionScan_control_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>scan_control_DockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>930</x>
+     <y>152</y>
     </hint>
    </hints>
   </connection>

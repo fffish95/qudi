@@ -624,7 +624,6 @@ class ConfocalLogic(GenericLogic):
         return 0
 
     def start_oneline_scanner(self):
-        self.module_state.lock()
         self._scanning_device.module_state.lock()
 
         clock_status = self._scanning_device.set_up_scanner_clock(
@@ -650,6 +649,7 @@ class ConfocalLogic(GenericLogic):
         """Continue the scanning procedure
         @return int: error code (0:OK, -1:error)
         """
+        self.module_state.lock()
         self._scanning_device.module_state.lock()
 
         clock_status = self._scanning_device.set_up_scanner_clock(
@@ -1115,11 +1115,11 @@ class ConfocalLogic(GenericLogic):
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
             if ch.lower().startswith('ch') or ch.lower().startswith('all'):
-                data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['count rate {0} (Hz)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
             elif ch.lower().startswith('ai'):
-                data['signal {0} (V)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['signal {0} (V)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
             else:
-                data['signal {0} (a.u.)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['signal {0} (a.u.)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'confocal_depth_data'
@@ -1272,7 +1272,6 @@ class ConfocalLogic(GenericLogic):
         self.signal_draw_figure_completed.emit()
         return fig
 
-    ##################################### Tilt correction ########################################
 
     @QtCore.Slot()
     def set_tilt_point1(self):

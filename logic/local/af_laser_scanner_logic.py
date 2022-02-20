@@ -76,7 +76,7 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         self.resolution = 5000
 
         # Default values for number of repeats
-        self.number_of_repeats = 0
+        self.number_of_repeats = 1000
 
         # Default scan speed
         self.scan_speed = int((self.a_range[1] - self.a_range[0])/2)
@@ -279,13 +279,13 @@ class LaserScannerHistoryEntry(QtCore.QObject):
 
 
 
-class LaserScannernernerLogic(GenericLogic):
+class LaserScannerLogic(GenericLogic):
 
     """This is the logic class for laser scanner.
     """
 
     # declare connectors
-    laserscannerscanner1 = Connector(interface='NITTlaserscannerScanner')
+    laserscannerscanner1 = Connector(interface='NITTConfocalScanner')
     confocallogic1 = Connector(interface='ConfocalLogic')
     savelogic = Connector(interface='SaveLogic')
 
@@ -482,9 +482,9 @@ class LaserScannernernerLogic(GenericLogic):
     def initialise_data_matrix(self): 
         self.trace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 1 + len(self.get_scanner_count_channels())))
         self.retrace_scan_matrix = np.zeros((self._number_of_repeats, self._resolution, 1 + len(self.get_scanner_count_channels())))
-        self.trace_plot_y_sum = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
-        self.trace_plot_y = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
-        self.retrace_plot_y = np.zeros((len(self.get_scanner_count_channels()),self._resolution))
+        self.trace_plot_y_sum = np.zeros((len(self.get_scanner_count_channels()), self._resolution))
+        self.trace_plot_y = np.zeros((len(self.get_scanner_count_channels()), self._resolution))
+        self.retrace_plot_y = np.zeros((len(self.get_scanner_count_channels()), self._resolution))
         self.plot_x = np.linspace(self._scan_range[0], self._scan_range[1], self._resolution)
 
 
@@ -686,7 +686,7 @@ class LaserScannernernerLogic(GenericLogic):
                 position_max_linear = position_start - position_range_of_accel
 
             if (position_max_linear - position_min_linear) / linear_position_step < self._smoothing_steps:
-                ramp = np.linspace(position_start,position_end, 2*self._smoothing_steps)
+                ramp = np.linspace(position_start,position_end, self._resolution)
             else:
                 num_of_linear_steps = np.rint(self._resolution - 2*self._smoothing_steps)
 
@@ -796,8 +796,8 @@ class LaserScannernernerLogic(GenericLogic):
                 return
             self.trace_scan_matrix[self._scan_counter, :, 0] = trace_line[-1]
             self.trace_scan_matrix[self._scan_counter, :, 1:] = counts_on_trace_line
-            self.trace_plot_y_sum +=  counts_on_trace_line
-            self.trace_plot_y = counts_on_trace_line
+            self.trace_plot_y_sum +=  counts_on_trace_line.transpose()
+            self.trace_plot_y = counts_on_trace_line.transpose()
             self.signal_trace_plots_updated.emit()
 
 
@@ -810,7 +810,7 @@ class LaserScannernernerLogic(GenericLogic):
             
             self.retrace_scan_matrix[self._scan_counter, :, 0] = retrace_line[-1]            
             self.retrace_scan_matrix[self._scan_counter, :, 1:] = counts_on_retrace_line
-            self.retrace_plot_y = counts_on_retrace_line        
+            self.retrace_plot_y = counts_on_retrace_line.transpose()
             self.signal_retrace_plots_updated.emit()
 
             # next line in scan
