@@ -96,8 +96,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>948</width>
-     <height>112</height>
+     <width>1017</width>
+     <height>141</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -110,33 +110,119 @@
     <layout class="QGridLayout" name="gridLayout_11">
      <item row="0" column="0">
       <layout class="QGridLayout" name="controlGridLayout">
-       <item row="2" column="7">
-        <widget class="ScienDSpinBox" name="cursorpositionDoubleSpinBox">
+       <item row="0" column="2">
+        <widget class="QLabel" name="scannedLabel">
+         <property name="text">
+          <string>Scanned lines</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="6">
+        <widget class="QLabel" name="constLabel">
+         <property name="text">
+          <string>Cursor position:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="5">
+        <widget class="ScienDSpinBox" name="speedDoubleSpinBox">
          <property name="suffix">
-          <string>MHz</string>
+          <string>MHz/s</string>
          </property>
          <property name="decimals">
           <number>2</number>
-         </property>
-         <property name="minimum">
-          <double>-99.000000000000000</double>
          </property>
          <property name="maximum">
           <double>100000000.000000000000000</double>
          </property>
         </widget>
        </item>
-       <item row="2" column="4">
+       <item row="1" column="0" colspan="6">
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="noofrepeatsLabel">
+         <property name="text">
+          <string>Number of repeat:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="noofrepeatsSpinBox">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>999999</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="3">
+        <widget class="QDoubleSpinBox" name="stopDoubleSpinBox">
+         <property name="suffix">
+          <string>MHz</string>
+         </property>
+         <property name="decimals">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <double>100000000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>30000.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="6">
+        <widget class="QLabel" name="clock_frequency_label">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;That is the inverse time how long the scanner stays at the desired position during the scan and counts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>Clock frequency (Hz):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="7">
+        <widget class="QLabel" name="clock_frequency_OutputWidget">
+         <property name="text">
+          <string>3000</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="4">
         <widget class="QLabel" name="speedLabel">
          <property name="text">
           <string>Speed:</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="2">
+       <item row="3" column="2">
         <widget class="QLabel" name="stopLabel">
          <property name="text">
           <string>Stop:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QLCDNumber" name="elapsed_lines_DisplayWidget"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="startLabel">
+         <property name="text">
+          <string>Start :</string>
          </property>
         </widget>
        </item>
@@ -157,96 +243,35 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="startLabel">
-         <property name="text">
-          <string>Start :</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="3">
-        <widget class="QLCDNumber" name="elapsed_lines_DisplayWidget"/>
-       </item>
-       <item row="0" column="2">
-        <widget class="QLabel" name="scannedLabel">
-         <property name="text">
-          <string>Scanned lines</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="6">
-        <widget class="QLabel" name="constLabel">
-         <property name="text">
-          <string>Cursor position:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="6">
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="ScienDSpinBox" name="startDoubleSpinBox">
+       <item row="3" column="7">
+        <widget class="QDoubleSpinBox" name="cursorpositionDoubleSpinBox">
          <property name="suffix">
           <string>MHz</string>
          </property>
          <property name="decimals">
-          <number>2</number>
+          <number>0</number>
+         </property>
+         <property name="minimum">
+          <double>-90.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>100000000.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QDoubleSpinBox" name="startDoubleSpinBox">
+         <property name="suffix">
+          <string>MHz</string>
+         </property>
+         <property name="decimals">
+          <number>0</number>
          </property>
          <property name="minimum">
           <double>-99.000000000000000</double>
          </property>
          <property name="maximum">
           <double>100000000.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="5">
-        <widget class="ScienDSpinBox" name="speedDoubleSpinBox">
-         <property name="suffix">
-          <string>MHz/s</string>
-         </property>
-         <property name="decimals">
-          <number>2</number>
-         </property>
-         <property name="maximum">
-          <double>100000000.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="3">
-        <widget class="ScienDSpinBox" name="stopDoubleSpinBox">
-         <property name="suffix">
-          <string>MHz</string>
-         </property>
-         <property name="decimals">
-          <number>2</number>
-         </property>
-         <property name="minimum">
-          <double>-99.000000000000000</double>
-         </property>
-         <property name="maximum">
-          <double>100000000.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QSpinBox" name="noofrepeatsSpinBox">
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>999999</number>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="noofrepeatsLabel">
-         <property name="text">
-          <string>Number of repeat:</string>
          </property>
         </widget>
        </item>
@@ -281,7 +306,7 @@
       <height>650</height>
      </size>
     </property>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>2</x>
@@ -502,10 +527,16 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="Retrace_dockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="minimumSize">
     <size>
      <width>730</width>
-     <height>229</height>
+     <height>275</height>
     </size>
    </property>
    <property name="windowTitle">
@@ -596,7 +627,23 @@
     <number>8</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_3">
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
     <layout class="QGridLayout" name="gridLayout_2">
+     <item row="1" column="3">
+      <widget class="QRadioButton" name="custom_ao_radioButton">
+       <property name="text">
+        <string>Custom AO</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
      <item row="0" column="4">
       <widget class="QSpinBox" name="sweeps_per_action_InputWidget">
        <property name="sizePolicy">
@@ -628,20 +675,13 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="3">
-      <widget class="QRadioButton" name="custom_ao_radioButton">
+     <item row="4" column="0">
+      <widget class="QLabel" name="x_ao0_label">
        <property name="text">
-        <string>Custom AO</string>
+        <string>X</string>
        </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="4">
-      <widget class="QLabel" name="Order_label">
-       <property name="text">
-        <string>Order</string>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>
@@ -655,7 +695,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="4">
+     <item row="4" column="4">
       <widget class="QSpinBox" name="x_ao0_order_InputWidget">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -686,33 +726,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="x_ao0_label">
-       <property name="text">
-        <string>X</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1" colspan="2">
-      <widget class="QDoubleSpinBox" name="x_ao0_min_doubleSpinBox">
-       <property name="buttonSymbols">
-        <enum>QAbstractSpinBox::NoButtons</enum>
-       </property>
-       <property name="minimum">
-        <double>-10000000000.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>10000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.000001000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="3">
+     <item row="4" column="3">
       <widget class="QDoubleSpinBox" name="x_ao0_max_doubleSpinBox">
        <property name="readOnly">
         <bool>false</bool>
@@ -741,7 +755,33 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="4">
+     <item row="5" column="0">
+      <widget class="QLabel" name="y_ao1_label">
+       <property name="text">
+        <string>Y</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1" colspan="2">
+      <widget class="QDoubleSpinBox" name="x_ao0_min_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="4">
       <widget class="QSpinBox" name="y_ao1_order_InputWidget">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -772,17 +812,7 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="y_ao1_label">
-       <property name="text">
-        <string>Y</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1" colspan="2">
+     <item row="5" column="1" colspan="2">
       <widget class="QDoubleSpinBox" name="y_ao1_min_doubleSpinBox">
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::NoButtons</enum>
@@ -798,39 +828,7 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="1" colspan="2">
-      <widget class="QDoubleSpinBox" name="z_ao2_min_doubleSpinBox">
-       <property name="buttonSymbols">
-        <enum>QAbstractSpinBox::NoButtons</enum>
-       </property>
-       <property name="minimum">
-        <double>-10000000000.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>10000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.000001000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="3">
-      <widget class="QDoubleSpinBox" name="y_ao1_max_doubleSpinBox">
-       <property name="buttonSymbols">
-        <enum>QAbstractSpinBox::NoButtons</enum>
-       </property>
-       <property name="minimum">
-        <double>-10000000000.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>10000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.000001000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="3">
+     <item row="6" column="3">
       <widget class="QDoubleSpinBox" name="z_ao2_max_doubleSpinBox">
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::NoButtons</enum>
@@ -846,7 +844,7 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
+     <item row="6" column="0">
       <widget class="QLabel" name="z_ao2_label">
        <property name="text">
         <string>Z</string>
@@ -856,7 +854,49 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="4">
+     <item row="6" column="1" colspan="2">
+      <widget class="QDoubleSpinBox" name="z_ao2_min_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="3">
+      <widget class="QDoubleSpinBox" name="y_ao1_max_doubleSpinBox">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="minimum">
+        <double>-10000000000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>10000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.000001000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QRadioButton" name="custom_function_radioButton">
+       <property name="text">
+        <string>Custom function</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="4">
       <widget class="QSpinBox" name="z_ao2_order_InputWidget">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -887,16 +927,6 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
-      <widget class="QRadioButton" name="custom_function_radioButton">
-       <property name="text">
-        <string>Custom function</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
      <item row="2" column="1" colspan="3">
       <widget class="QLabel" name="position_range_label">
        <property name="text">
@@ -904,6 +934,13 @@
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <widget class="QLabel" name="Order_label">
+       <property name="text">
+        <string>Order</string>
        </property>
       </widget>
      </item>
@@ -1144,10 +1181,7 @@
  <tabstops>
   <tabstop>noofrepeatsSpinBox</tabstop>
   <tabstop>resolutionSpinBox</tabstop>
-  <tabstop>startDoubleSpinBox</tabstop>
-  <tabstop>stopDoubleSpinBox</tabstop>
   <tabstop>speedDoubleSpinBox</tabstop>
-  <tabstop>cursorpositionDoubleSpinBox</tabstop>
   <tabstop>cb_max_SpinBox</tabstop>
   <tabstop>cb_high_percentile_SpinBox</tabstop>
   <tabstop>cb_low_percentile_SpinBox</tabstop>

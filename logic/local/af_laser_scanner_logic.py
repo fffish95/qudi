@@ -87,8 +87,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
 
         # Default values for custom scan
         self.custom_scan = False
-        self.custom_scan_mode = CustomScanMode.FUNCTION
-        self.custom_scan_values = CustomScanXYPlotValues.MINIMUM
+        self.custom_scan_mode = CustomScanMode.FUNCTION.value
+        self.custom_scan_values = CustomScanXYPlotValues.MINIMUM.value
         self.custom_scan_sweeps_per_action = 1
         self.custom_scan_x_range = self.x_range
         self.custom_scan_y_range = self.y_range
@@ -113,8 +113,18 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         laserscanner._scan_counter = self.scan_counter
         laserscanner._scan_continuable = self.scan_continuable
         laserscanner._custom_scan = False # To not init the plots in confocal logic
-        laserscanner._custom_scan_mode = self.custom_scan_mode
-        laserscanner._custom_scan_values = self.custom_scan_values
+        if self.custom_scan_mode == 0:           
+            laserscanner._custom_scan_mode = CustomScanMode.XYPLOT
+        if self.custom_scan_mode == 1:           
+            laserscanner._custom_scan_mode = CustomScanMode.AO
+        if self.custom_scan_mode == 2:           
+            laserscanner._custom_scan_mode = CustomScanMode.FUNCTION
+        if self.custom_scan_values == 0:
+            laserscanner._custom_scan_values = CustomScanXYPlotValues.MINIMUM
+        if self.custom_scan_values == 1:
+            laserscanner._custom_scan_values = CustomScanXYPlotValues.MEAN
+        if self.custom_scan_values == 2:
+            laserscanner._custom_scan_values = CustomScanXYPlotValues.MAXIMUM
         laserscanner._custom_scan_sweeps_per_action = self.custom_scan_sweeps_per_action
         laserscanner._custom_scan_x_range = np.copy(self.custom_scan_x_range)
         laserscanner._custom_scan_y_range = np.copy(self.custom_scan_y_range)
@@ -163,8 +173,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         self.scan_counter = laserscanner._scan_counter
         self.scan_continuable = laserscanner._scan_continuable
         self.custom_scan = laserscanner._custom_scan
-        self.custom_scan_mode = laserscanner._custom_scan_mode
-        self.custom_scan_values = laserscanner._custom_scan_values 
+        self.custom_scan_mode = laserscanner._custom_scan_mode.value
+        self.custom_scan_values = laserscanner._custom_scan_values.value 
         self.custom_scan_sweeps_per_action = laserscanner._custom_scan_sweeps_per_action
         self.custom_scan_x_range = np.copy(laserscanner._custom_scan_x_range)
         self.custom_scan_y_range = np.copy(laserscanner._custom_scan_y_range)
@@ -238,9 +248,9 @@ class LaserScannerHistoryEntry(QtCore.QObject):
             self.scan_continuable = serialized['scan_continuable']
         if 'custom_scan' in serialized:
             self.custom_scan = serialized['custom_scan']
-        if 'custom_scan_mode' in serialized and isinstance(serialized['custom_scan_mode'], CustomScanMode):
+        if 'custom_scan_mode' in serialized:
             self.custom_scan_mode = serialized['custom_scan_mode']
-        if 'custom_scan_values' in serialized and isinstance(serialized['custom_scan_values'], CustomScanXYPlotValues):
+        if 'custom_scan_values' in serialized:
             self.custom_scan_values = serialized['custom_scan_values']
         if 'custom_scan_sweeps_per_action' in serialized:
             self.custom_scan_sweeps_per_action = serialized['custom_scan_sweeps_per_action']
@@ -292,7 +302,10 @@ class LaserScannerLogic(GenericLogic):
     # status vars
     _smoothing_steps = StatusVar(default=10)
     _order_3_counter = StatusVar(default=0)
-    max_history_length = StatusVar(default=10)
+    _oneline_scanner_frequency = StatusVar(default=20000)
+    _goto_speed = StatusVar(default=100)
+
+    max_history_length = StatusVar(default=3)
 
     # signals
     signal_start_scanning = QtCore.Signal(str)
@@ -347,7 +360,7 @@ class LaserScannerLogic(GenericLogic):
         """ Deinitialisation performed during deactivation of the module.
         """
         self.stopRequested = True
-        self.save_history_config()
+        return 0
     
     def save_history_config(self):
         state_config = LaserScannerHistoryEntry(self)
@@ -488,7 +501,7 @@ class LaserScannerLogic(GenericLogic):
         self.plot_x = np.linspace(self._scan_range[0], self._scan_range[1], self._resolution)
 
 
-        if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+        if self._custom_scan and self._custom_scan_mode.value == 0:
             self._confocal_logic._zscan = False
             self._confocal_logic._xyscan_continuable = False
             self._confocal_logic._scan_counter = 0
@@ -531,13 +544,11 @@ class LaserScannerLogic(GenericLogic):
                     3 + len(self.get_scanner_count_channels())
                 ))
             self._confocal_logic.xy_image[:, :, 0] = np.full(
-                (len(self._Y), len(self._X), self._X)
-            )
+                (len(self._Y), len(self._X)), self._X)
             y_value_matrix = np.full((len(self._X), len(self._Y)), self._Y)
             self._confocal_logic.xy_image[:, :, 1] = y_value_matrix.transpose()
             self._confocal_logic.xy_image[:, :, 2] = self._current_z * np.ones(
-                (len(self._Y, len(self._X)))
-            )
+                (len(self._Y), len(self._X)))
         #if custom_scan and self._custom_scan_mode == CustomScanMode.AO:
     
     def start_scanner(self, tag):
@@ -545,11 +556,12 @@ class LaserScannerLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.module_state.lock()
+        if tag != 'custom_scan':
+            self.module_state.lock()
         self._scanning_device.module_state.lock()
         if self._custom_scan:
             self._number_of_repeats = self._custom_scan_order_1_resolution * self._custom_scan_order_2_resolution
-            if self._custom_scan_mode == CustomScanMode.XYPLOT:
+            if self._custom_scan_mode.value == 0:
                 self._confocal_logic.module_state.lock()
         
         clock_status = self._scanning_device.set_up_scanner_clock(
@@ -558,7 +570,7 @@ class LaserScannerLogic(GenericLogic):
         if clock_status < 0:
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()
-            if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+            if self._custom_scan and self._custom_scan_mode.value == 0:
                 self._confocal_logic.module_state.unlock()
             self._change_position()
             self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
@@ -570,7 +582,7 @@ class LaserScannerLogic(GenericLogic):
             self._scanning_device.close_scanner_clock()
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()
-            if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+            if self._custom_scan and self._custom_scan_mode.value == 0:
                 self._confocal_logic.module_state.unlock()
             self._change_position()
             self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
@@ -587,7 +599,7 @@ class LaserScannerLogic(GenericLogic):
         self._scanning_device.module_state.lock()
 
         clock_status = self._scanning_device.set_up_scanner_clock(
-            clock_frequency=self._clock_frequency)
+            clock_frequency=self._oneline_scanner_frequency)
 
         if clock_status < 0:
             self._scanning_device.module_state.unlock()
@@ -654,9 +666,9 @@ class LaserScannerLogic(GenericLogic):
             self._scanning_device.module_state.unlock()
         except Exception as e:
             self.log.exception('Could not unlock scanning device.')
-        if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+        if self._custom_scan and self._custom_scan_mode.value == 0:
             try:
-                self._confocal_logic.module_state.lock()
+                self._confocal_logic.module_state.unlock()
             except Exception as e:
                 self.log.exception('Could not unlock the confocal logic.')
 
@@ -734,7 +746,13 @@ class LaserScannerLogic(GenericLogic):
 
     def _change_position(self):
         """ Let hardware move to current a"""
-        move_line = self._generate_ramp(self._scanning_device.get_scanner_position()[3], self._current_a)
+        ramp = np.linspace(self._scanning_device.get_scanner_position()[3], self._current_a, self._goto_speed)
+        move_line = np.vstack((
+            np.ones((len(ramp), )) * self._scanning_device.get_scanner_position()[0],
+            np.ones((len(ramp), )) * self._scanning_device.get_scanner_position()[1],
+            np.ones((len(ramp), )) * self._scanning_device.get_scanner_position()[2],
+            ramp
+            ))
         self.module_state.lock()
         self.start_oneline_scanner()
         move_line_counts = self._scanning_device.scan_line(move_line)
@@ -759,9 +777,9 @@ class LaserScannerLogic(GenericLogic):
                 self.module_state.unlock()
                 self.signal_trace_plots_updated.emit()
                 self.signal_retrace_plots_updated.emit()
-                if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+                if self._custom_scan and self._custom_scan_mode.value == 0:
                     self.custom_xyplot_stop()
-                self._change_position()
+
                 # add new history entry
                 new_history = LaserScannerHistoryEntry(self)
                 new_history.snapshot(self)
@@ -769,17 +787,13 @@ class LaserScannerLogic(GenericLogic):
                 if len(self.history) > self.max_history_length:
                     self.history.pop(0)
                 self.history_index = len(self.history) - 1
-                # clock frequency is not in status variables, set clock frequency
-                self.set_clock_frequency()
                 self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
-                self.signal_change_position.emit('scan')
-                self.signal_history_event.emit()
                 return
 
 
 
         try:
-            if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+            if self._custom_scan and self._custom_scan_mode.value == 0:
                 self.custom_xyplot_prepare()
             if self._move_to_start:
                 move_line = self._generate_ramp(self._scanning_device.get_scanner_position()[3], self._scan_range[0])
@@ -794,8 +808,11 @@ class LaserScannerLogic(GenericLogic):
                 self.stop_scanning()
                 self.signal_scan_lines_next.emit()
                 return
-            self.trace_scan_matrix[self._scan_counter, :, 0] = trace_line[-1]
-            self.trace_scan_matrix[self._scan_counter, :, 1:] = counts_on_trace_line
+            scan_counter = self._scan_counter
+            # add scan counter here to make sure the display in gui displays the corresponding number for the nth line
+            self._scan_counter += 1
+            self.trace_scan_matrix[scan_counter, :, 0] = trace_line[-1]
+            self.trace_scan_matrix[scan_counter, :, 1:] = counts_on_trace_line
             self.trace_plot_y_sum +=  counts_on_trace_line.transpose()
             self.trace_plot_y = counts_on_trace_line.transpose()
             self.signal_trace_plots_updated.emit()
@@ -808,15 +825,14 @@ class LaserScannerLogic(GenericLogic):
                 self.signal_scan_lines_next.emit()
                 return
             
-            self.retrace_scan_matrix[self._scan_counter, :, 0] = retrace_line[-1]            
-            self.retrace_scan_matrix[self._scan_counter, :, 1:] = counts_on_retrace_line
+            self.retrace_scan_matrix[scan_counter, :, 0] = retrace_line[-1]            
+            self.retrace_scan_matrix[scan_counter, :, 1:] = counts_on_retrace_line
             self.retrace_plot_y = counts_on_retrace_line.transpose()
             self.signal_retrace_plots_updated.emit()
 
-            # next line in scan
-            self._scan_counter += 1
 
-            if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+
+            if self._custom_scan and self._custom_scan_mode.value == 0:
                 self.custom_xyplot_process()
             
             elif self._scan_counter >= self._number_of_repeats:
@@ -848,17 +864,17 @@ class LaserScannerLogic(GenericLogic):
                 data_array.append(self.trace_scan_matrix[self._scan_counter-1-i,:, 1:])
 
             for s_ch in range(0,len(self.get_scanner_count_channels())):
-                if self._custom_scan_values == CustomScanXYPlotValues.MINIMUM:
+                if self._custom_scan_values.value == 0:
                     data_min_array=[]
                     for i in range(0, len(data_array)):
                         data_min_array.append(np.min(data_array[i][s_ch]))
                     point_value = np.mean(data_min_array)
-                if self._custom_scan_values == CustomScanXYPlotValues.MEAN:
+                if self._custom_scan_values.value == 1:
                     data_mean_array=[]
                     for i in range(0, len(data_array)):
                         data_mean_array.append(np.mean(data_array[i][s_ch]))
                     point_value = np.mean(data_mean_array)  
-                if self._custom_scan_values == CustomScanXYPlotValues.MAXIMUM:
+                if self._custom_scan_values.value == 2:
                     data_max_array=[]
                     for i in range(0, len(data_array)):
                         data_max_array.append(np.max(data_array[i][s_ch]))
@@ -896,7 +912,7 @@ class LaserScannerLogic(GenericLogic):
         self.set_clock_frequency()
     
     def set_resolution(self, resolution):
-        self._resolution = np.clip(resolution, 1, 1e6)
+        self._resolution = int(np.clip(resolution, 1, 1e6))
         self.set_clock_frequency()
     
 
@@ -932,7 +948,7 @@ class LaserScannerLogic(GenericLogic):
         parameters['Resolution'] = self._resolution
         parameters['Clock Frequency (Hz)'] = self._clock_frequency
 
-        if self._custom_scan and self._custom_scan_mode == CustomScanMode.XYPLOT:
+        if self._custom_scan and self._custom_scan_mode.value == 0:
             parameters['custom scan mode'] = self._custom_scan_mode.name
             parameters['custom scan values'] = self._custom_scan_values.name
             parameters['custom scan sweeps per action'] = self._custom_scan_sweeps_per_action
@@ -1099,7 +1115,7 @@ class LaserScannerLogic(GenericLogic):
                 np.min(freq_data),
                 np.max(freq_data),
                 0,
-                self.number_of_repeats
+                self._number_of_repeats
                 ],
             aspect='auto',
             interpolation='nearest')

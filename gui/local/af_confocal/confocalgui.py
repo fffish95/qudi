@@ -111,6 +111,22 @@ class SaveDialog(QtWidgets.QDialog):
         self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
         self.setLayout(self.hbox)
 
+class LoadDialog(QtWidgets.QDialog):
+    """ Dialog to provide feedback and block GUI while loading """
+    def __init__(self, parent, title="Please wait", text="Loading..."):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setWindowModality(QtCore.Qt.WindowModal)
+        self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+
+        # Dialog layout
+        self.text = QtWidgets.QLabel("<font size='16'>" + text + "</font>")
+        self.hbox = QtWidgets.QHBoxLayout()
+        self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
+        self.hbox.addWidget(self.text)
+        self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
+        self.setLayout(self.hbox)
+
 class ConfocalGui(GUIBase):
     """ Main Confocal Class for xy and depth scans.
     """
@@ -159,6 +175,7 @@ class ConfocalGui(GUIBase):
         self.initOptimizerSettingsUI()  # initialize the optimizer settings GUI
 
         self._save_dialog = SaveDialog(self._mw)
+        self._load_dialog = LoadDialog(self._mw)
 
     def initMainUI(self):
         """ Definition, configuration and initialisation of the confocal GUI.
@@ -1620,11 +1637,14 @@ class ConfocalGui(GUIBase):
             'Configuration files (*.cfg)')[0]
 
         if filename != '':
+            self._save_dialog.show()
             self._scanning_logic.save_history_config()
             variables = self._scanning_logic.getStatusVariables()
             try:
                 config.save(filename, variables)
+                self._save_dialog.hide()
             except:
+                self._save_dialog.hide()
                 print(variables)
                 self.log.exception('Failed to save status variables to {0}'.format(filename))
 
@@ -1638,7 +1658,9 @@ class ConfocalGui(GUIBase):
                 defaultconfigpath,
                 'Configuration files (*.cfg)')[0]
             if os.path.isfile(filename):
+                self._load_dialog.show()
                 variables = config.load(filename)
+                self._load_dialog.hide()
             else:
                 variables = OrderedDict()
             self._scanning_logic.setStatusVariables(variables)
