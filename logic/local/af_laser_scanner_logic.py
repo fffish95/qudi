@@ -502,6 +502,7 @@ class LaserScannerLogic(GenericLogic):
 
 
         if self._custom_scan and self._custom_scan_mode.value == 0:
+
             self._confocal_logic._zscan = False
             self._confocal_logic._xyscan_continuable = False
             self._confocal_logic._scan_counter = 0
@@ -559,10 +560,9 @@ class LaserScannerLogic(GenericLogic):
         if tag != 'custom_scan':
             self.module_state.lock()
         self._scanning_device.module_state.lock()
-        if self._custom_scan:
-            self._number_of_repeats = self._custom_scan_order_1_resolution * self._custom_scan_order_2_resolution
-            if self._custom_scan_mode.value == 0:
-                self._confocal_logic.module_state.lock()
+        if self._custom_scan and self._custom_scan_mode.value < 2:
+            self._confocal_logic.module_state.lock()
+            self._confocal_logic.signal_custom_scan_started.emit()
         
         clock_status = self._scanning_device.set_up_scanner_clock(
             clock_frequency=self._clock_frequency)
@@ -570,7 +570,7 @@ class LaserScannerLogic(GenericLogic):
         if clock_status < 0:
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()
-            if self._custom_scan and self._custom_scan_mode.value == 0:
+            if self._custom_scan and self._custom_scan_mode.value < 2:
                 self._confocal_logic.module_state.unlock()
             self._change_position()
             self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
@@ -582,7 +582,7 @@ class LaserScannerLogic(GenericLogic):
             self._scanning_device.close_scanner_clock()
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()
-            if self._custom_scan and self._custom_scan_mode.value == 0:
+            if self._custom_scan and self._custom_scan_mode.value < 2:
                 self._confocal_logic.module_state.unlock()
             self._change_position()
             self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
@@ -895,10 +895,11 @@ class LaserScannerLogic(GenericLogic):
                 self._scan_counter = 0
                 self.initialise_data_matrix()
     
-    def custom_xyplot_stop(self):
+    def custom_xyscan_stop(self):
         self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
         self._custom_scan = False
         self._order_3_counter = 0
+        self._confocal_logic.signal_custom_scan_stopped.emit()
         self._confocal_logic.signal_xy_image_updated.emit()
 
     def set_scan_range(self, scan_range):
@@ -941,28 +942,35 @@ class LaserScannerLogic(GenericLogic):
 
         parameters = OrderedDict()
         
-        parameters['Number of frequency sweeps (#)'] = self._number_of_repeats
+        parameters['Number of frequency sweeps (#)'] = self._scan_counter
         parameters['Start Position (MHz)'] = self._scan_range[0]
         parameters['Stop Position (MHz)'] = self._scan_range[1]
         parameters['Scan speed'] = self._scan_speed
         parameters['Resolution'] = self._resolution
         parameters['Clock Frequency (Hz)'] = self._clock_frequency
 
-        if self._custom_scan and self._custom_scan_mode.value == 0:
+        if self._custom_scan and self._custom_scan_mode.value < 2:
             parameters['custom scan mode'] = self._custom_scan_mode.name
             parameters['custom scan values'] = self._custom_scan_values.name
             parameters['custom scan sweeps per action'] = self._custom_scan_sweeps_per_action
-            parameters['X image min (m)'] = self._custom_scan_x_range[0]
-            parameters['X image min (m)'] = self._custom_scan_x_range[1]
-            parameters['X image resolution'] = self._custom_scan_order_1_resolution
-            parameters['Y image min (m)'] = self._custom_scan_y_range[0]
-            parameters['Y image min (m)'] = self._custom_scan_y_range[1]
-            parameters['Y image resolution'] = self._custom_scan_order_2_resolution
-            parameters['XY Image at z position (m)'] = self._current_z
-            parameters['Order 3 counter'] = self._order_3_counter
+            parameters['X min'] = self._custom_scan_x_range[0]
+            parameters['X max'] = self._custom_scan_x_range[1]
+            parameters['X order'] = self._custom_scan_x_order
+            parameters['current x'] = self._current_x
+            parameters['Y min'] = self._custom_scan_y_range[0]
+            parameters['Y max'] = self._custom_scan_y_range[1]
+            parameters['Y order'] = self._custom_scan_y_order
+            parameters['current y'] = self._current_y
+            parameters['Z min'] = self._custom_scan_z_range[0]
+            parameters['Z max'] = self._custom_scan_z_range[1]
+            parameters['Z order'] = self._custom_scan_z_order
+            parameters['current z'] = self._current_z
+            parameters['order 1 resolution'] = self._custom_scan_order_1_resolution
+            parameters['order 2 resolution'] = self._custom_scan_order_2_resolution
+            parameters['order 3 resolution'] = self._custom_scan_order_3_resolution
 
         fit_y = np.zeros(len(self.plot_x))
-        figs = {ch: self.draw_figure(matrix_data=self.trace_scan_matrix[:, :, 1 + n],
+        figs = {ch: self.draw_figure(matrix_data=self.trace_scan_matrix[:self._scan_counter, :, 1 + n],
                                      freq_data = self.plot_x,
                                      count_data = self.trace_plot_y[n,:],
                                      fit_freq_vals = self.plot_x,
@@ -974,7 +982,7 @@ class LaserScannerLogic(GenericLogic):
         for n, ch in enumerate(self.get_scanner_count_channels()):
             # data for the text-array "image":
             image_data = OrderedDict()
-            image_data['Trace image data.\n'] = self.trace_scan_matrix[:, :, 1 + n]
+            image_data['Trace image data.\n'] = self.trace_scan_matrix[:self._scan_counter, :, 1 + n]
 
             filelabel = 'Laserscanner_trace_image_{0}'.format(ch.replace('/', ''))
             self._save_logic.save_data(image_data,
@@ -990,7 +998,7 @@ class LaserScannerLogic(GenericLogic):
         
 
         fit_y = np.zeros(len(self.plot_x))
-        figs = {ch: self.draw_figure(matrix_data=self.retrace_scan_matrix[:, :, 1 + n],
+        figs = {ch: self.draw_figure(matrix_data=self.retrace_scan_matrix[:self._scan_counter, :, 1 + n],
                                      freq_data = self.plot_x,
                                      count_data = self.retrace_plot_y[n,:],
                                      fit_freq_vals = self.plot_x,
@@ -1002,7 +1010,7 @@ class LaserScannerLogic(GenericLogic):
         for n, ch in enumerate(self.get_scanner_count_channels()):
             # data for the text-array "image":
             image_data = OrderedDict()
-            image_data['Rerace image data.\n'] = self.retrace_scan_matrix[:, :, 1 + n]
+            image_data['Rerace image data.\n'] = self.retrace_scan_matrix[:self._scan_counter, :, 1 + n]
 
             filelabel = 'Laserscanner_retrace_image_{0}'.format(ch.replace('/', ''))
             self._save_logic.save_data(image_data,
@@ -1020,11 +1028,11 @@ class LaserScannerLogic(GenericLogic):
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
             if ch.lower().startswith('ch') or ch.lower().startswith('all'):
-                data['count rate {0} (Hz)'.format(ch)] = self.trace_scan_matrix[:, :, 1 + n].flatten()
+                data['count rate {0} (Hz)'.format(ch)] = self.trace_scan_matrix[:self._scan_counter, :, 1 + n].flatten()
             elif ch.lower().startswith('ai'):
-                data['signal {0} (V)'.format(ch)] = self.trace_scan_matrix[:, :, 1 + n].flatten()
+                data['signal {0} (V)'.format(ch)] = self.trace_scan_matrix[:self._scan_counter, :, 1 + n].flatten()
             else:
-                data['signal {0} (a.u.)'.format(ch)] = self.trace_scan_matrix[:, :, 1 + n].flatten()
+                data['signal {0} (a.u.)'.format(ch)] = self.trace_scan_matrix[:self._scan_counter, :, 1 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'laser_scanner_trace_raw_data'
@@ -1115,7 +1123,7 @@ class LaserScannerLogic(GenericLogic):
                 np.min(freq_data),
                 np.max(freq_data),
                 0,
-                self._number_of_repeats
+                self._scan_counter
                 ],
             aspect='auto',
             interpolation='nearest')

@@ -499,7 +499,9 @@ class LaserscannerGui(GUIBase):
             self.log.error('Line num set value exceeds range.')
             return -1
         self._scanning_logic.trace_plot_y = self._scanning_logic.trace_scan_matrix[self._linenum-1, :, 1:].transpose()
-        self.refresh_trace_plots() 
+        self._scanning_logic.retrace_plot_y = self._scanning_logic.retrace_scan_matrix[self._linenum-1, :, 1:].transpose()
+        self.refresh_trace_plots()
+        self.refresh_retrace_plots()
 
     def SetSweepsPerAction(self):
         self._custom_scan_sweeps_per_action = int(self._mw.sweeps_per_action_InputWidget.value())
@@ -524,6 +526,9 @@ class LaserscannerGui(GUIBase):
 
     def custom_scan_start_clicked(self):
         """ Start custom scan. """
+        new_noofrepeats = self._scanning_logic._custom_scan_order_1_resolution * self._scanning_logic._custom_scan_order_2_resolution
+        self.change_no_of_repeats()
+        self._mw.noofrepeatsSpinBox.setValue(new_noofrepeats)
         self.disable_scan_actions()
         self._scanning_logic.start_scanning(custom_scan = True, tag='gui')
 
@@ -621,10 +626,9 @@ class LaserscannerGui(GUIBase):
 
     def refresh_trace_plots(self):        
         """ Refresh the xy-matrix image """
-        self.trace_scan_matrix_image.getViewBox().updateAutoRange()        
-        trace_image_data = self._scanning_logic.trace_scan_matrix[:, :, 1 + self._channel]
-
-
+        self.trace_scan_matrix_image.getViewBox().updateAutoRange()
+        self.trace_scan_matrix_image.getViewBox().setXRange(min = self._scanning_logic.plot_x[0], max = self._scanning_logic.plot_x[-1])  
+        trace_image_data = self._scanning_logic.trace_scan_matrix[:self._scanning_logic._scan_counter, :, 1 + self._channel]
         cb_range = self.get_cb_range()
 
         # Now update image with new color scale, and update colorbar
@@ -645,7 +649,9 @@ class LaserscannerGui(GUIBase):
 
     def refresh_retrace_plots(self):
         self.retrace_scan_matrix_image.getViewBox().updateAutoRange()
-        retrace_image_data = self._scanning_logic.retrace_scan_matrix[:, :, 1 + self._channel]
+        self.retrace_scan_matrix_image.getViewBox().setXRange(min = self._scanning_logic.plot_x[0], max = self._scanning_logic.plot_x[-1])  
+        self.retrace_scan_matrix_image.getViewBox().updateAutoRange()
+        retrace_image_data = self._scanning_logic.retrace_scan_matrix[:self._scanning_logic._scan_counter, :, 1 + self._channel]
         cb_range = self.get_cb_range()
 
         # Now update image with new color scale, and update colorbar

@@ -281,6 +281,8 @@ class ConfocalLogic(GenericLogic):
     signal_draw_figure_completed = QtCore.Signal()
     signal_position_changed = QtCore.Signal()
     signal_scan_range_updated = QtCore.Signal()
+    signal_custom_scan_started = QtCore.Signal()
+    signal_custom_scan_stopped = QtCore.Signal()
 
     _signal_save_xy = QtCore.Signal(object, object)
     _signal_save_depth = QtCore.Signal(object, object)
