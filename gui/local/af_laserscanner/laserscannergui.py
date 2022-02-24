@@ -162,11 +162,12 @@ class LaserscannerGui(GUIBase):
         self._linenum = self._scanning_logic._scan_counter
 
         # Get the image for the display from the logic
-        raw_data_trace_scan_matrix= self._scanning_logic.trace_scan_matrix[:, :, 1 + self._channel]
-        raw_data_retrace_scan_matrix = self._scanning_logic.retrace_scan_matrix[:, :, 1 + self._channel]
+        raw_data_trace_scan_matrix= self._scanning_logic.trace_scan_matrix[:, :, 4 + self._channel]
+        raw_data_retrace_scan_matrix = self._scanning_logic.retrace_scan_matrix[:, :, 4 + self._channel]
         raw_data_trace_plot_y_sum = self._scanning_logic.trace_plot_y_sum[self._channel,:]
         raw_data_trace_plot_y = self._scanning_logic.trace_plot_y[self._channel,:]
         raw_data_retrace_plot_y = self._scanning_logic.retrace_plot_y[self._channel,:]
+
 
         # Load the images in the display:
         self.trace_scan_matrix_image = pg.ImageItem(
@@ -290,15 +291,6 @@ class LaserscannerGui(GUIBase):
             slot=self.custom_scan_start_clicked
             )
 
-        # history actions
-        self._mw.actionForward.triggered.connect(self.history_forward_clicked)
-        self._mw.actionBack.triggered.connect(self.history_back_clicked)
-        self._scanning_logic.signal_history_event.connect(lambda: self.set_history_actions(True))
-        self._scanning_logic.signal_history_event.connect(self.update_cb_range)
-        self._scanning_logic.signal_history_event.connect(self._mw.trace_scan_matrix_ViewWidget.autoRange)
-        self._scanning_logic.signal_history_event.connect(self._mw.retrace_scan_matrix_ViewWidget.autoRange)
-        self._scanning_logic.signal_history_event.connect(self.update_parameters_from_logic)
-
         # Get initial custom scan values
         self._mw.actionCustom_scan_view.setChecked(
             self._scanning_logic._custom_scan)
@@ -359,7 +351,8 @@ class LaserscannerGui(GUIBase):
 
         # Connect the signal from the logic with an update
         self._scanning_logic.signal_change_position.connect(self.update_cursor_position_from_logic)
-        self._scanning_logic.siganl_custom_scan_range_updated.connect(self.update_custom_scan_range_input_from_logic)
+        self._scanning_logic.signal_custom_scan_range_updated.connect(self.update_custom_scan_range_input_from_logic)
+        self._scanning_logic.signal_initialise_matrix.connect(self.initialise_matrix)
 
 
         # Connect other signals from the logic with an update of the gui
@@ -384,6 +377,12 @@ class LaserscannerGui(GUIBase):
         self.region_cursor.sigRegionChanged.connect(self.updateSweepRange)
         self.main_cursor.sigPositionChanged.connect(self.updateCursorPosition)
 
+        # history actions
+        self._mw.actionForward.triggered.connect(self.history_forward_clicked)
+        self._mw.actionBack.triggered.connect(self.history_back_clicked)
+        self._scanning_logic.signal_history_event.connect(lambda: self.set_history_actions(True))
+        self._scanning_logic.signal_history_event.connect(self.history_event)
+
         #################################################################
         #           Connect the colorbar and their actions              #
         #################################################################
@@ -403,11 +402,9 @@ class LaserscannerGui(GUIBase):
         self._mw.cb_ViewWidget.hideAxis('left')
         self._mw.cb_ViewWidget.setLabel('right', 'Fluorescence', units='c/s')
 
-
-        # Now that the ROI for xy and depth is connected to events, update the
-        # default position and initialize the position of the crosshair and
         # all other components:
         self.enable_scan_actions()
+        self.history_event()
         self.show()
 
     def initSettingsUI(self):
@@ -498,8 +495,8 @@ class LaserscannerGui(GUIBase):
         if self._linenum not in range(0, self._scanning_logic._scan_counter + 1):
             self.log.error('Line num set value exceeds range.')
             return -1
-        self._scanning_logic.trace_plot_y = self._scanning_logic.trace_scan_matrix[self._linenum-1, :, 1:].transpose()
-        self._scanning_logic.retrace_plot_y = self._scanning_logic.retrace_scan_matrix[self._linenum-1, :, 1:].transpose()
+        self._scanning_logic.trace_plot_y = self._scanning_logic.trace_scan_matrix[self._linenum-1, :, 4:].transpose()
+        self._scanning_logic.retrace_plot_y = self._scanning_logic.retrace_scan_matrix[self._linenum-1, :, 4:].transpose()
         self.refresh_trace_plots()
         self.refresh_retrace_plots()
 
@@ -527,8 +524,8 @@ class LaserscannerGui(GUIBase):
     def custom_scan_start_clicked(self):
         """ Start custom scan. """
         new_noofrepeats = self._scanning_logic._custom_scan_order_1_resolution * self._scanning_logic._custom_scan_order_2_resolution
-        self.change_no_of_repeats()
         self._mw.noofrepeatsSpinBox.setValue(new_noofrepeats)
+        self.change_no_of_repeats()
         self.disable_scan_actions()
         self._scanning_logic.start_scanning(custom_scan = True, tag='gui')
 
@@ -625,12 +622,11 @@ class LaserscannerGui(GUIBase):
         self.update_cb_range()
 
     def refresh_trace_plots(self):        
-        """ Refresh the xy-matrix image """
-        self.trace_scan_matrix_image.getViewBox().updateAutoRange()
-        self.trace_scan_matrix_image.getViewBox().setXRange(min = self._scanning_logic.plot_x[0], max = self._scanning_logic.plot_x[-1])  
-        trace_image_data = self._scanning_logic.trace_scan_matrix[:self._scanning_logic._scan_counter, :, 1 + self._channel]
-        cb_range = self.get_cb_range()
+        """ Refresh the trace-matrix image """
 
+        trace_image_data = self._scanning_logic.trace_scan_matrix[:self._scanning_logic._scan_counter, :, 4 + self._channel]
+        cb_range = self.get_cb_range()
+        
         # Now update image with new color scale, and update colorbar
         self.trace_scan_matrix_image.setImage(image=trace_image_data, levels=(cb_range[0], cb_range[1]))
         self.refresh_colorbar()
@@ -648,10 +644,8 @@ class LaserscannerGui(GUIBase):
 
 
     def refresh_retrace_plots(self):
-        self.retrace_scan_matrix_image.getViewBox().updateAutoRange()
-        self.retrace_scan_matrix_image.getViewBox().setXRange(min = self._scanning_logic.plot_x[0], max = self._scanning_logic.plot_x[-1])  
-        self.retrace_scan_matrix_image.getViewBox().updateAutoRange()
-        retrace_image_data = self._scanning_logic.retrace_scan_matrix[:self._scanning_logic._scan_counter, :, 1 + self._channel]
+        """ Refresh the trace-matrix image """
+        retrace_image_data = self._scanning_logic.retrace_scan_matrix[:self._scanning_logic._scan_counter, :, 4 + self._channel]
         cb_range = self.get_cb_range()
 
         # Now update image with new color scale, and update colorbar
@@ -952,6 +946,39 @@ class LaserscannerGui(GUIBase):
 
     def change_resolution(self):
         self._scanning_logic.set_resolution(self._mw.resolutionSpinBox.value())
+
+    def initialise_matrix(self):
+        raw_data_trace_scan_matrix= self._scanning_logic.trace_scan_matrix[:, :, 4 + self._channel]
+        raw_data_retrace_scan_matrix = self._scanning_logic.retrace_scan_matrix[:, :, 4 + self._channel]
+        # Load the images in the display:
+        self.trace_scan_matrix_image.setImage(
+            raw_data_trace_scan_matrix,
+            axisOrder='row-major')
+
+        self.trace_scan_matrix_image.setRect(
+            QtCore.QRectF(
+                self._scanning_logic._scan_range[0],
+                0,
+                self._scanning_logic._scan_range[1] - self._scanning_logic._scan_range[0],
+                self._scanning_logic._number_of_repeats)
+        )
+
+        self.retrace_scan_matrix_image.setImage(
+            raw_data_retrace_scan_matrix,
+            axisOrder='row-major')
+
+        self.retrace_scan_matrix_image.setRect(
+            QtCore.QRectF(
+                self._scanning_logic._scan_range[0],
+                0,
+                self._scanning_logic._scan_range[1] - self._scanning_logic._scan_range[0],
+                self._scanning_logic._number_of_repeats)
+        )
+
+    def history_event(self):
+        self.initialise_matrix()    
+        self.update_parameters_from_logic()
+        self.update_cb_range()
 
 
 

@@ -949,19 +949,19 @@ class ConfocalLogic(GenericLogic):
         # Prepare the metadata parameters (common to both saved files):
         parameters = OrderedDict()
 
-        parameters['X image min (m)'] = self.image_x_range[0]
-        parameters['X image max (m)'] = self.image_x_range[1]
-        parameters['X image range (m)'] = self.image_x_range[1] - self.image_x_range[0]
+        parameters['X_image_min_(m)'] = self.image_x_range[0]
+        parameters['X_image_max_(m)'] = self.image_x_range[1]
+        parameters['X_image_range_(m)'] = self.image_x_range[1] - self.image_x_range[0]
 
-        parameters['Y image min'] = self.image_y_range[0]
-        parameters['Y image max'] = self.image_y_range[1]
-        parameters['Y image range'] = self.image_y_range[1] - self.image_y_range[0]
+        parameters['Y_image_min'] = self.image_y_range[0]
+        parameters['Y_image_max'] = self.image_y_range[1]
+        parameters['Y_image_range'] = self.image_y_range[1] - self.image_y_range[0]
 
-        parameters['XY resolution (samples per range)'] = self.xy_resolution
-        parameters['XY Image at z position (m)'] = self._current_z
+        parameters['XY_resolution_(samples_per_range)'] = self.xy_resolution
+        parameters['XY_Image_at_z_position_(m)'] = self._current_z
 
-        parameters['Clock frequency of scanner (Hz)'] = self._clock_frequency
-        parameters['Return Slowness (Steps during retrace line)'] = self.return_slowness
+        parameters['Clock_frequency_of_scanner_(Hz)'] = self._clock_frequency
+        parameters['Return_Slowness_(Steps_during_retrace_line)'] = self.return_slowness
 
         image_extent = [self.image_x_range[0],
                         self.image_x_range[1],
@@ -999,17 +999,17 @@ class ConfocalLogic(GenericLogic):
 
         # prepare the full raw data in an OrderedDict:
         data = OrderedDict()
-        data['x position (m)'] = self.xy_image[:, :, 0].flatten()
-        data['y position (m)'] = self.xy_image[:, :, 1].flatten()
-        data['z position (m)'] = self.xy_image[:, :, 2].flatten()
+        data['x_position_(m)'] = self.xy_image[:, :, 0].flatten()
+        data['y_position_(m)'] = self.xy_image[:, :, 1].flatten()
+        data['z_position_(m)'] = self.xy_image[:, :, 2].flatten()
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
             if ch.lower().startswith('ch') or ch.lower().startswith('all'):
-                data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['count_rate_{0}_(Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
             elif ch.lower().startswith('ai'):
-                data['signal {0} (V)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['signal_{0}_(V)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
             else:
-                data['signal {0} (a.u.)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+                data['signal_{0}_(a.u.)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'confocal_xy_data'
@@ -1055,20 +1055,20 @@ class ConfocalLogic(GenericLogic):
         parameters = OrderedDict()
 
         # TODO: This needs to check whether the scan was XZ or YZ direction
-        parameters['X image min (m)'] = self.image_x_range[0]
-        parameters['X image max (m)'] = self.image_x_range[1]
-        parameters['X image range (m)'] = self.image_x_range[1] - self.image_x_range[0]
+        parameters['X_image_min_(m)'] = self.image_x_range[0]
+        parameters['X_image_max_(m)'] = self.image_x_range[1]
+        parameters['X_image_range_(m)'] = self.image_x_range[1] - self.image_x_range[0]
 
-        parameters['Z image min'] = self.image_z_range[0]
-        parameters['Z image max'] = self.image_z_range[1]
-        parameters['Z image range'] = self.image_z_range[1] - self.image_z_range[0]
+        parameters['Z_image_min'] = self.image_z_range[0]
+        parameters['Z_image_max'] = self.image_z_range[1]
+        parameters['Z_image_range'] = self.image_z_range[1] - self.image_z_range[0]
 
-        parameters['XY resolution (samples per range)'] = self.xy_resolution
-        parameters['Z resolution (samples per range)'] = self.z_resolution
-        parameters['Depth Image at y position (m)'] = self._current_y
+        parameters['XY_resolution_(samples_per_range)'] = self.xy_resolution
+        parameters['Z_resolution_(samples_per_range)'] = self.z_resolution
+        parameters['Depth_Image_at_y_position_(m)'] = self._current_y
 
-        parameters['Clock frequency of scanner (Hz)'] = self._clock_frequency
-        parameters['Return Slowness (Steps during retrace line)'] = self.return_slowness
+        parameters['Clock-frequency_of_scanner_(Hz)'] = self._clock_frequency
+        parameters['Return_Slowness_(Steps_during_retrace_line)'] = self.return_slowness
 
         if self.depth_img_is_xz:
             horizontal_range = [self.image_x_range[0], self.image_x_range[1]]
@@ -1113,17 +1113,17 @@ class ConfocalLogic(GenericLogic):
 
         # prepare the full raw data in an OrderedDict:
         data = OrderedDict()
-        data['x position (m)'] = self.depth_image[:, :, 0].flatten()
-        data['y position (m)'] = self.depth_image[:, :, 1].flatten()
-        data['z position (m)'] = self.depth_image[:, :, 2].flatten()
+        data['x_position_(m)'] = self.depth_image[:, :, 0].flatten()
+        data['y_position_(m)'] = self.depth_image[:, :, 1].flatten()
+        data['z_position_(m)'] = self.depth_image[:, :, 2].flatten()
 
         for n, ch in enumerate(self.get_scanner_count_channels()):
             if ch.lower().startswith('ch') or ch.lower().startswith('all'):
-                data['count rate {0} (Hz)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
+                data['count_rate_{0}_(Hz)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
             elif ch.lower().startswith('ai'):
-                data['signal {0} (V)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
+                data['signal_{0}_(V)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
             else:
-                data['signal {0} (a.u.)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
+                data['signal_{0}_(a.u.)'.format(ch)] = self.depth_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
         filelabel = 'confocal_depth_data'

@@ -1994,6 +1994,9 @@ class ConfocalGui(GUIBase):
         self._mw.y_max_InputWidget.setValue(self._scanning_logic.image_y_range[1])
         self._mw.z_min_InputWidget.setValue(self._scanning_logic.image_z_range[0])
         self._mw.z_max_InputWidget.setValue(self._scanning_logic.image_z_range[1])
+        self._mw.xy_res_InputWidget.setValue(self._scanning_logic.xy_resolution)
+        self._mw.z_res_InputWidget.setValue(self._scanning_logic.z_resolution)
+
 
     def _set_scan_icons(self):
         """ Set the scan icons depending on whether loop-scan is active or not
