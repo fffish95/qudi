@@ -93,13 +93,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         self.custom_scan_x_range = self.x_range
         self.custom_scan_y_range = self.y_range
         self.custom_scan_z_range = self.z_range
-        self.custom_scan_x_order = 1
-        self.custom_scan_y_order = 2
-        self.custom_scan_z_order = 0
-        self.custom_scan_order_1_resolution = 100
-        self.custom_scan_order_2_resolution = 100
-        self.custom_scan_order_3_resolution = 50
-    
+        self.xyz_orders = [1,2,0]
+        self.order_resolutions = [100,100,50]
     def restore(self, laserscanner):
         """ Write data back into laser scan logic and pull all the necessary strings"""
         laserscanner._current_x = self.current_x
@@ -129,14 +124,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         laserscanner._custom_scan_x_range = np.copy(self.custom_scan_x_range)
         laserscanner._custom_scan_y_range = np.copy(self.custom_scan_y_range)
         laserscanner._custom_scan_z_range = np.copy(self.custom_scan_z_range)
-        laserscanner._custom_scan_x_order = self.custom_scan_x_order
-        laserscanner._custom_scan_y_order = self.custom_scan_y_order
-        laserscanner._custom_scan_z_order = self.custom_scan_z_order
-        laserscanner._custom_scan_order_1_resolution = self.custom_scan_order_1_resolution
-        laserscanner._custom_scan_order_2_resolution = self.custom_scan_order_2_resolution
-        laserscanner._custom_scan_order_3_resolution = self.custom_scan_order_3_resolution
-
-
+        laserscanner._xyz_orders = np.copy(self.xyz_orders)
+        laserscanner._order_resolutions = np.copy(self.order_resolutions)
         laserscanner.initialise_data_matrix()
         try:
             if laserscanner.trace_scan_matrix.shape == self.trace_scan_matrix.shape:
@@ -179,13 +168,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         self.custom_scan_x_range = np.copy(laserscanner._custom_scan_x_range)
         self.custom_scan_y_range = np.copy(laserscanner._custom_scan_y_range)
         self.custom_scan_z_range = np.copy(laserscanner._custom_scan_z_range)
-        self.custom_scan_x_order = laserscanner._custom_scan_x_order
-        self.custom_scan_y_order = laserscanner._custom_scan_y_order
-        self.custom_scan_z_order = laserscanner._custom_scan_z_order
-        self.custom_scan_order_1_resolution = laserscanner._custom_scan_order_1_resolution
-        self.custom_scan_order_2_resolution = laserscanner._custom_scan_order_2_resolution
-        self.custom_scan_order_3_resolution = laserscanner._custom_scan_order_3_resolution
-
+        self.xyz_orders = np.copy(laserscanner._xyz_orders)
+        self.order_resolutions = np.copy(laserscanner._order_resolutions)
 
         self.trace_scan_matrix = np.copy(laserscanner.trace_scan_matrix)
         self.retrace_scan_matrix = np.copy(laserscanner.retrace_scan_matrix)
@@ -211,13 +195,8 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         serialized['custom_scan_x_range'] = list(self.custom_scan_x_range)
         serialized['custom_scan_y_range'] = list(self.custom_scan_y_range)
         serialized['custom_scan_z_range'] = list(self.custom_scan_z_range)
-        serialized['custom_scan_x_order'] = self.custom_scan_x_order
-        serialized['custom_scan_y_order'] = self.custom_scan_y_order
-        serialized['custom_scan_z_order'] = self.custom_scan_z_order
-        serialized['custom_scan_order_1_resolution'] = self.custom_scan_order_1_resolution
-        serialized['custom_scan_order_2_resolution'] = self.custom_scan_order_2_resolution
-        serialized['custom_scan_order_3_resolution'] = self.custom_scan_order_3_resolution
-
+        serialized['xyz_orders'] = list(self.xyz_orders)
+        serialized['order_resolutions'] = list(self.order_resolutions)
 
         serialized['trace_scan_matrix'] = self.trace_scan_matrix
         serialized['retrace_scan_matrix'] = self.retrace_scan_matrix
@@ -254,25 +233,16 @@ class LaserScannerHistoryEntry(QtCore.QObject):
             self.custom_scan_values = serialized['custom_scan_values']
         if 'custom_scan_sweeps_per_action' in serialized:
             self.custom_scan_sweeps_per_action = serialized['custom_scan_sweeps_per_action']
-        if 'custom_scan_x_range' in serialized and len(serialized['custom_scan_x_range']) ==2:
+        if 'custom_scan_x_range' in serialized and len(serialized['custom_scan_x_range']) == 2:
             self.custom_scan_x_rangen = serialized['custom_scan_x_range']
-        if 'custom_scan_y_range' in serialized and len(serialized['custom_scan_y_range']) ==2:
+        if 'custom_scan_y_range' in serialized and len(serialized['custom_scan_y_range']) == 2:
             self.custom_scan_y_rangen = serialized['custom_scan_y_range']
-        if 'custom_scan_z_range' in serialized and len(serialized['custom_scan_z_range']) ==2:
+        if 'custom_scan_z_range' in serialized and len(serialized['custom_scan_z_range']) == 2:
             self.custom_scan_z_rangen = serialized['custom_scan_z_range']
-        if 'custom_scan_x_order' in serialized:
-            self.custom_scan_x_order = serialized['custom_scan_x_order']
-        if 'custom_scan_y_order' in serialized:
-            self.custom_scan_y_order = serialized['custom_scan_y_order']
-        if 'custom_scan_z_order' in serialized:
-            self.custom_scan_z_order = serialized['custom_scan_z_order']
-        if 'custom_scan_order_1_resolution' in serialized:
-            self.custom_scan_order_1_resolution = serialized['custom_scan_order_1_resolution']
-        if 'custom_scan_order_2_resolution' in serialized:
-            self.custom_scan_order_2_resolution = serialized['custom_scan_order_2_resolution']
-        if 'custom_scan_order_3_resolution' in serialized:
-            self.custom_scan_order_3_resolution = serialized['custom_scan_order_3_resolution']
-
+        if 'xyz_orders' in serialized and len(serialized['xyz_orders']) == 3:
+            self.xyz_orders = serialized['xyz_orders']
+        if 'order_resolutions' in serialized and len(serialized['order_resolutions']) == 3:
+            self.order_resolutions = serialized['order_resolutions']            
         
         if 'trace_scan_matrix' in serialized:
             self.trace_scan_matrix = serialized['trace_scan_matrix']
@@ -704,11 +674,13 @@ class LaserScannerLogic(GenericLogic):
             position_range_of_accel = sum(n * linear_position_step / smoothing_range for n in range(0, smoothing_range)
             )
             if position_start < position_end:
-                position_min_linear = position_start + position_range_of_accel
-                position_max_linear = position_end - position_range_of_accel
+                position_min = position_start
+                position_max = position_end
             else:
-                position_min_linear = position_end + position_range_of_accel
-                position_max_linear = position_start - position_range_of_accel
+                position_min = position_end
+                position_max = position_start
+            position_min_linear = position_min + position_range_of_accel
+            position_max_linear = position_max - position_range_of_accel
 
             if (position_max_linear - position_min_linear) / linear_position_step < self._smoothing_steps:
                 ramp = np.linspace(position_start,position_end, self._resolution)
@@ -720,8 +692,8 @@ class LaserScannerLogic(GenericLogic):
                         n * linear_position_step / smoothing_range for n in range(1, N)
                     ) for N in range(1, smoothing_range)
                     ])
-                accel_part = position_min_linear + smooth_curve
-                decel_part = position_max_linear - smooth_curve[::-1]
+                accel_part = position_min + smooth_curve
+                decel_part = position_max - smooth_curve[::-1]
 
                 linear_part = np.linspace(position_min_linear, position_max_linear, num_of_linear_steps)
                 ramp = np.hstack((accel_part, linear_part, decel_part))
