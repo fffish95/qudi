@@ -281,6 +281,8 @@ class ConfocalLogic(GenericLogic):
     signal_draw_figure_completed = QtCore.Signal()
     signal_position_changed = QtCore.Signal()
     signal_scan_range_updated = QtCore.Signal()
+    signal_custom_scan_started = QtCore.Signal()
+    signal_custom_scan_stopped = QtCore.Signal()
 
     _signal_save_xy = QtCore.Signal(object, object)
     _signal_save_depth = QtCore.Signal(object, object)
@@ -647,7 +649,6 @@ class ConfocalLogic(GenericLogic):
             self.set_position('scanner')
             return -1
         return 0
-
 
     def continue_scanner(self):
         """Continue the scanning procedure
@@ -1067,7 +1068,7 @@ class ConfocalLogic(GenericLogic):
         parameters['Z_resolution_(samples_per_range)'] = self.z_resolution
         parameters['Depth_Image_at_y_position_(m)'] = self._current_y
 
-        parameters['Clock-frequency_of_scanner_(Hz)'] = self._clock_frequency
+        parameters['Clock_frequency_of_scanner_(Hz)'] = self._clock_frequency
         parameters['Return_Slowness_(Steps_during_retrace_line)'] = self.return_slowness
 
         if self.depth_img_is_xz:

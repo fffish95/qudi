@@ -85,6 +85,9 @@ class LaserScannerHistoryEntry(QtCore.QObject):
         self.scan_counter = 0
         self.scan_continuable = False
 
+        # init plot_x
+        self.plot_x = np.linspace(self.a_range[0], self.a_range[1], self.resolution)
+
         # Default values for custom scan
         self.custom_scan = False
         self.custom_scan_mode = CustomScanMode.FUNCTION.value
@@ -458,10 +461,10 @@ class LaserScannerLogic(GenericLogic):
         self._confocal_logic.image_y_range[1] = self._custom_scan_y_range[1]
         self._confocal_logic.image_z_range[0] = self._custom_scan_z_range[0]
         self._confocal_logic.image_z_range[1] = self._custom_scan_z_range[1]
-        x_order = self._xyz_orders[0]
-        self._confocal_logic.xy_resolution = self._order_resolutions[x_order]
-        z_order = self._xyz_orders[2]
-        self._confocal_logic.z_resolution = self._order_reslutions[z_order]
+
+        if self._custom_scan_mode.value == 0:
+            self._confocal_logic.xy_resolution = self._order_resolutions[0]
+            self._confocal_logic.z_resolution = self._order_resolutions[2]
         self._confocal_logic.signal_scan_range_updated.emit()
 
     def get_confocal_scan_range(self):
@@ -483,7 +486,7 @@ class LaserScannerLogic(GenericLogic):
         self.signal_initialise_matrix.emit()
 
 
-        if self._custom_scan and self._custom_scan_mode.value == 0:
+        if self._custom_scan and self._custom_scan_mode.value <2:
 
             self._confocal_logic._zscan = False
             self._confocal_logic._xyscan_continuable = False
@@ -506,34 +509,33 @@ class LaserScannerLogic(GenericLogic):
                     'y1 must be smaller than y2, but they are '
                     '({0:.3f},{1:.3f}).'.format(y1, y2))
                 return -1
-            # TO DO when z order = 0, z2 = z1
-            if self._custom_scan_z_order in [0,3]:
-                if z2 < z1:
-                    self.log.error(
-                        'z1 must be smaller than z2, but they are '
-                        '({0:.3f},{1:.3f}).'.format(z1, z2))
-                    return -1
-            else:
-                self.log.error('z order must be 0 or 3 in xyplot mode.')
-            self._X = np.linspace( x1, x2, self._custom_scan_order_1_resolution)
-            self._Y = np.linspace( y1, y2, self._custom_scan_order_2_resolution)
-            if self._custom_scan_z_order == 3:
-                self._Z = np.linspace( z1, z2, self._custom_scan_order_3_resolution)
-            else:
-                self._Z = np.linspace( z1, z1, 1)
-            self._confocal_logic.xy_image = np.zeros((
-                    len(self._Y),
-                    len(self._X),
-                    3 + len(self.get_scanner_count_channels())
-                ))
-            self._confocal_logic.xy_image[:, :, 0] = np.full(
-                (len(self._Y), len(self._X)), self._X)
-            y_value_matrix = np.full((len(self._X), len(self._Y)), self._Y)
-            self._confocal_logic.xy_image[:, :, 1] = y_value_matrix.transpose()
-            self._confocal_logic.xy_image[:, :, 2] = self._current_z * np.ones(
-                (len(self._Y), len(self._X)))
-            self._confocal_logic.sigImageXYInitialized.emit()
-        #if custom_scan and self._custom_scan_mode == CustomScanMode.AO:
+            if z2 < z1:
+                self.log.error(
+                    'z1 must be smaller than z2, but they are '
+                    '({0:.3f},{1:.3f}).'.format(z1, z2))
+                return -1
+
+            xyz1 = [x1,y1,z1]
+            xyz2 = [x2,y2,y2]
+            self._XYZ = []
+            for i in range(0,3):
+                if self._xyz_orders[i] > 0:
+                    self._XYZ.append(np.linspace( xyz1[i], xyz2[i], self._order_resolutions[self._xyz_orders[i]-1]))
+                else:
+                    self._XYZ.append(np.linspace( xyz1[i], xyz2[i], 1))
+            if self._custom_scan_mode.value == 0:
+                self._confocal_logic.xy_image = np.zeros((
+                        len(self._XYZ[1]),
+                        len(self._XYZ[0]),
+                        3 + len(self.get_scanner_count_channels())
+                    ))
+                self._confocal_logic.xy_image[:, :, 0] = np.full(
+                    (len(self._XYZ[1]), len(self._XYZ[0])), self._XYZ[0])
+                y_value_matrix = np.full((len(self._XYZ[0]), len(self._XYZ[1])), self._XYZ[1])
+                self._confocal_logic.xy_image[:, :, 1] = y_value_matrix.transpose()
+                self._confocal_logic.xy_image[:, :, 2] = self._XYZ[2][self._order_3_counter] * np.ones(
+                    (len(self._XYZ[1]), len(self._XYZ[0])))
+                self._confocal_logic.sigImageXYInitialized.emit()
     
     def start_scanner(self, tag):
         """Setting up the scanner device and starts the scanning procedure
@@ -649,7 +651,7 @@ class LaserScannerLogic(GenericLogic):
             self._scanning_device.module_state.unlock()
         except Exception as e:
             self.log.exception('Could not unlock scanning device.')
-        if self._custom_scan and self._custom_scan_mode.value == 0:
+        if self._custom_scan and self._custom_scan_mode.value < 2:
             try:
                 self._confocal_logic.module_state.unlock()
             except Exception as e:
@@ -762,9 +764,8 @@ class LaserScannerLogic(GenericLogic):
                 self.module_state.unlock()
                 self.signal_trace_plots_updated.emit()
                 self.signal_retrace_plots_updated.emit()
-                if self._custom_scan and self._custom_scan_mode.value == 0:
-                    self.custom_xyplot_stop()
-
+                if self._custom_scan and self._custom_scan_mode.value < 2:
+                    self.custom_scan_xyz_stop()
                 # add new history entry
                 new_history = LaserScannerHistoryEntry(self)
                 new_history.snapshot(self)
@@ -778,8 +779,8 @@ class LaserScannerLogic(GenericLogic):
 
 
         try:
-            if self._custom_scan and self._custom_scan_mode.value == 0:
-                self.custom_xyplot_prepare()
+            if self._custom_scan and self._custom_scan_mode.value < 2 :
+                self.custom_scan_xyz_prepare()
             if self._move_to_start:
                 move_line = self._generate_ramp(self._scanning_device.get_scanner_position()[3], self._scan_range[0])
                 move_line_counts = self._scanning_device.scan_line(move_line)
@@ -817,8 +818,8 @@ class LaserScannerLogic(GenericLogic):
 
 
 
-            if self._custom_scan and self._custom_scan_mode.value == 0:
-                self.custom_xyplot_process()
+            if self._custom_scan and self._custom_scan_mode.value < 2:
+                self.custom_scan_xyz_process()
             
             elif self._scan_counter >= self._number_of_repeats:
                 self.stop_scanning()
@@ -830,20 +831,26 @@ class LaserScannerLogic(GenericLogic):
             self.stop_scanning()
             self.signal_scan_lines_next.emit()
 
-    def custom_xyplot_prepare(self):
-        self.x_counter = (self._scan_counter // self._custom_scan_sweeps_per_action) % self._custom_scan_order_1_resolution
-        self.y_counter = (self._scan_counter // self._custom_scan_sweeps_per_action) // self._custom_scan_order_1_resolution
-        self.z_counter = self._order_3_counter
+    def custom_scan_xyz_prepare(self):
+        self._xyz_counter = np.zeros(3)
+        for i in range(0,3):
+            if self._xyz_orders[i] == 1:
+                self._xyz_counter[i] = (self._scan_counter // self._custom_scan_sweeps_per_action) % self._order_resolutions[0]
+            if self._xyz_orders[i] == 2:
+                self._xyz_counter[i] = (self._scan_counter // self._custom_scan_sweeps_per_action) // self._order_resolutions[0]
+            if self._xyz_orders[i] == 3:
+                self._xyz_counter[i] = self._order_3_counter
+            
         # when it is needed to change the point...
         if self._scan_counter % self._custom_scan_sweeps_per_action == 0:
             self.kill_scanner()
-            self.set_position(x = self._X[self.x_counter], y = self._Y[self.y_counter], z = self._Z[self.z_counter])                
+            self.set_position(x = self._XYZ[0][int(self._xyz_counter[0])], y = self._XYZ[1][int(self._xyz_counter[1])], z = self._XYZ[2][int(self._xyz_counter[2])])                
             self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
             self.start_scanner(tag = 'custom_scan')
     
-    def custom_xyplot_process(self):
+    def custom_scan_xyz_process(self):
         # when it is needed to record the value...
-        if self._scan_counter % self._custom_scan_sweeps_per_action == 0:
+        if self._scan_counter % self._custom_scan_sweeps_per_action == 0 and self._custom_scan_mode.value == 0:
             data_array = []
             for i in range(0, self._custom_scan_sweeps_per_action):
                 data_array.append(self.trace_scan_matrix[self._scan_counter-1-i,:, 4:])
@@ -864,28 +871,30 @@ class LaserScannerLogic(GenericLogic):
                     for i in range(0, len(data_array)):
                         data_max_array.append(np.max(data_array[i][s_ch]))
                     point_value = np.mean(data_max_array)
-                self._confocal_logic.xy_image[:, :, 3 + s_ch][self.y_counter, self.x_counter] = point_value
+                self._confocal_logic.xy_image[:, :, 3 + s_ch][int(self._xyz_counter[1]), int(self._xyz_counter[0])] = point_value
             
             self._confocal_logic.signal_xy_image_updated.emit()
 
         # when it is needed to change z value or stop the scan
         if self._scan_counter >= self._number_of_repeats:
             self._order_3_counter += 1
-            self._confocal_logic.save_xy_data()
             self.save_data()
+            if self._custom_scan_mode.value == 0:
+                self._confocal_logic.save_xy_data()
 
-            if self._order_3_counter >= len(self._Z):
+            if 3 not in self._xyz_orders or self._order_3_counter >= self._order_resolutions[2]:
                 self.stop_scanning()
             else:
                 self._scan_counter = 0
                 self.initialise_data_matrix()
     
-    def custom_xyplot_stop(self):
+    def custom_scan_xyz_stop(self):
         self._confocal_logic.set_position(tag='laserscanner', x = self._current_x, y = self._current_y, z = self._current_z)
         self._custom_scan = False
         self._order_3_counter = 0
         self._confocal_logic.signal_custom_scan_stopped.emit()
-        self._confocal_logic.signal_xy_image_updated.emit()
+        if self._custom_scan_sweeps_per_action == 0:
+            self._confocal_logic.signal_xy_image_updated.emit()
 
     def set_scan_range(self, scan_range):
         """ Set the scan rnage """
@@ -940,19 +949,19 @@ class LaserScannerLogic(GenericLogic):
             parameters['custom_scan_sweeps_per_action'] = self._custom_scan_sweeps_per_action
             parameters['X_min'] = self._custom_scan_x_range[0]
             parameters['X_max'] = self._custom_scan_x_range[1]
-            parameters['X_order'] = self._custom_scan_x_order
+            parameters['X_order'] = self._xyz_orders[0]
             parameters['current_x'] = self._current_x
             parameters['Y_min'] = self._custom_scan_y_range[0]
             parameters['Y_max'] = self._custom_scan_y_range[1]
-            parameters['Y_order'] = self._custom_scan_y_order
+            parameters['Y_order'] = self._xyz_orders[1]
             parameters['current_y'] = self._current_y
             parameters['Z_min'] = self._custom_scan_z_range[0]
             parameters['Z_max'] = self._custom_scan_z_range[1]
-            parameters['Z_order'] = self._custom_scan_z_order
+            parameters['Z_order'] = self._xyz_orders[2]
             parameters['current_z'] = self._current_z
-            parameters['order_1_resolution'] = self._custom_scan_order_1_resolution
-            parameters['order_2_resolution'] = self._custom_scan_order_2_resolution
-            parameters['order_3_resolution'] = self._custom_scan_order_3_resolution
+            parameters['order_1_resolution'] = self._order_resolutions[0]
+            parameters['order_2_resolution'] = self._order_resolutions[1]
+            parameters['order_3_resolution'] = self._order_resolutions[2]
 
         fit_y = np.zeros(len(self.plot_x))
         figs = {ch: self.draw_figure(matrix_data=self.trace_scan_matrix[:self._scan_counter, :, 4 + n],

@@ -306,9 +306,9 @@ class LaserscannerGui(GUIBase):
         self._mw.z_ao2_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[0])
         self._mw.z_ao2_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[1])
     
-        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._custom_scan_x_order)
-        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._custom_scan_y_order)
-        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._custom_scan_z_order)
+        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._xyz_orders[0])
+        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._xyz_orders[1])
+        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._xyz_orders[2])
 
         if self._scanning_logic._custom_scan_mode.value == 0:
             self._mw.xy_plot_radioButton.setChecked(True)
@@ -444,9 +444,9 @@ class LaserscannerGui(GUIBase):
             self._scanning_logic._custom_scan_values = CustomScanXYPlotValues.MEAN
         if self._sd.max_radioButton.isChecked():
             self._scanning_logic._custom_scan_values = CustomScanXYPlotValues.MAXIMUM
-        self._scanning_logic._custom_scan_order_1_resolution = self._sd.order_1_resolution_spinBox.value()
-        self._scanning_logic._custom_scan_order_2_resolution = self._sd.order_2_resolution_spinBox.value()
-        self._scanning_logic._custom_scan_order_3_resolution = self._sd.order_3_resolution_spinBox.value()
+        self._scanning_logic._order_resolutions[0] = self._sd.order_1_resolution_spinBox.value()
+        self._scanning_logic._order_resolutions[1] = self._sd.order_2_resolution_spinBox.value()
+        self._scanning_logic._order_resolutions[2] = self._sd.order_3_resolution_spinBox.value()
 
     
     def keep_former_settings(self):
@@ -460,9 +460,9 @@ class LaserscannerGui(GUIBase):
             self._sd.mean_radioButton.setChecked(True)
         if self._scanning_logic._custom_scan_values.value == 2:
             self._sd.max_radioButton.setChecked(True)
-        self._sd.order_1_resolution_spinBox.setValue(self._scanning_logic._custom_scan_order_1_resolution)
-        self._sd.order_2_resolution_spinBox.setValue(self._scanning_logic._custom_scan_order_2_resolution)
-        self._sd.order_3_resolution_spinBox.setValue(self._scanning_logic._custom_scan_order_3_resolution)
+        self._sd.order_1_resolution_spinBox.setValue(self._scanning_logic._order_resolutions[0])
+        self._sd.order_2_resolution_spinBox.setValue(self._scanning_logic._order_resolutions[1])
+        self._sd.order_3_resolution_spinBox.setValue(self._scanning_logic._order_resolutions[2])
 
 
     def update_channel(self, index):
@@ -484,9 +484,9 @@ class LaserscannerGui(GUIBase):
         self._mw.z_ao2_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[0])
         self._mw.z_ao2_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[1])
 
-        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._custom_scan_x_order)
-        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._custom_scan_y_order)
-        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._custom_scan_z_order)
+        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._xyz_orders[0])
+        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._xyz_orders[1])
+        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._xyz_orders[2])
 
 
 
@@ -501,7 +501,7 @@ class LaserscannerGui(GUIBase):
         self.refresh_retrace_plots()
 
     def SetSweepsPerAction(self):
-        self._custom_scan_sweeps_per_action = int(self._mw.sweeps_per_action_InputWidget.value())
+        self._scanning_logic._custom_scan_sweeps_per_action = int(self._mw.sweeps_per_action_InputWidget.value())
 
     def ready_clicked(self):
         """ Stop the scan if the state has switched to ready. """
@@ -523,7 +523,7 @@ class LaserscannerGui(GUIBase):
 
     def custom_scan_start_clicked(self):
         """ Start custom scan. """
-        new_noofrepeats = self._scanning_logic._custom_scan_order_1_resolution * self._scanning_logic._custom_scan_order_2_resolution
+        new_noofrepeats = self._scanning_logic._order_resolutions[0] * self._scanning_logic._order_resolutions[1] * self._scanning_logic._custom_scan_sweeps_per_action
         self._mw.noofrepeatsSpinBox.setValue(new_noofrepeats)
         self.change_no_of_repeats()
         self.disable_scan_actions()
@@ -608,9 +608,9 @@ class LaserscannerGui(GUIBase):
         self._scanning_logic.update_confocal_scan_range()
 
     def change_custom_scan_order(self):
-        self._scanning_logic._custom_scan_x_order = self._mw.x_ao0_order_InputWidget.value()
-        self._scanning_logic._custom_scan_y_order = self._mw.y_ao1_order_InputWidget.value()
-        self._scanning_logic._custom_scan_z_order = self._mw.z_ao2_order_InputWidget.value()
+        self._scanning_logic._xyz_orders[0]= self._mw.x_ao0_order_InputWidget.value()
+        self._scanning_logic._xyz_orders[1] = self._mw.y_ao1_order_InputWidget.value()
+        self._scanning_logic._xyz_orders[2] = self._mw.z_ao2_order_InputWidget.value()
 
 
     def shortcut_to_cb_manual(self):

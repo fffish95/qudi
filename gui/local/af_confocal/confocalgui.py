@@ -833,7 +833,6 @@ class ConfocalGui(GUIBase):
 
         self.set_history_actions(False)
 
-
     def enable_scan_actions(self):
         """ Reset the scan action buttons to the default active
         state when the system is idle.
@@ -1996,7 +1995,6 @@ class ConfocalGui(GUIBase):
         self._mw.z_max_InputWidget.setValue(self._scanning_logic.image_z_range[1])
         self._mw.xy_res_InputWidget.setValue(self._scanning_logic.xy_resolution)
         self._mw.z_res_InputWidget.setValue(self._scanning_logic.z_resolution)
-
 
     def _set_scan_icons(self):
         """ Set the scan icons depending on whether loop-scan is active or not

@@ -597,8 +597,8 @@ class ConfocalLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
         self.module_state.lock()
-
         self._scanning_device.module_state.lock()
+        
         if self.initialize_image() < 0:
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()

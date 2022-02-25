@@ -87,8 +87,24 @@ class SaveDialog(QtWidgets.QDialog):
         self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
         self.setLayout(self.hbox)
 
+class LoadDialog(QtWidgets.QDialog):
+    """ Dialog to provide feedback and block GUI while loading """
+    def __init__(self, parent, title="Please wait", text="Loading..."):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setWindowModality(QtCore.Qt.WindowModal)
+        self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+
+        # Dialog layout
+        self.text = QtWidgets.QLabel("<font size='16'>" + text + "</font>")
+        self.hbox = QtWidgets.QHBoxLayout()
+        self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
+        self.hbox.addWidget(self.text)
+        self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
+        self.setLayout(self.hbox)
+
 class LaserscannerGui(GUIBase):
-    """ Say something
+    """ 
     """
     
     # declare connectors
@@ -120,7 +136,8 @@ class LaserscannerGui(GUIBase):
         self.initMainUI()      # initialize the main GUI
         self.initSettingsUI()  # initialize the settings GUI
 
-        self._save_dialog = SaveDialog(self._mw)      
+        self._save_dialog = SaveDialog(self._mw)
+        self._load_dialog = LoadDialog(self._mw)      
 
     def initMainUI(self):
         """ Definition, configuration and initialisation of the laser scanner GUI.
@@ -129,7 +146,7 @@ class LaserscannerGui(GUIBase):
         *.ui file and configures the event handling between the modules.
         Moreover it sets default values.
         """
-        self._mw = LaserscannerGui()
+        self._mw = LaserScannerMainWindow()
 
         ###################################################################
         #               Configuring the dock widgets                      #
@@ -145,39 +162,40 @@ class LaserscannerGui(GUIBase):
         self._linenum = self._scanning_logic._scan_counter
 
         # Get the image for the display from the logic
-        raw_data_trace_scan_matrix= self._scanning_logic.trace_scan_matrix[:, :, 1 + self._channel]
-        raw_data_retrace_scan_matrix = self._scanning_logic.retrace_scan_matrix[:, :, 1 + self._channel]
-        raw_data_trace_plot_y_sum = self._scanning_logic.trace_plot_y_sum[self._channel]
-        raw_data_trace_plot_y = self._scanning_logic.trace_plot_y[self._channel]
-        raw_data_retrace_plot_y = self._scanning_logic.retrace_plot_y[self._channel]
+        raw_data_trace_scan_matrix= self._scanning_logic.trace_scan_matrix[:, :, 4 + self._channel]
+        raw_data_retrace_scan_matrix = self._scanning_logic.retrace_scan_matrix[:, :, 4 + self._channel]
+        raw_data_trace_plot_y_sum = self._scanning_logic.trace_plot_y_sum[self._channel,:]
+        raw_data_trace_plot_y = self._scanning_logic.trace_plot_y[self._channel,:]
+        raw_data_retrace_plot_y = self._scanning_logic.retrace_plot_y[self._channel,:]
+
 
         # Load the images in the display:
-        # self.trace_scan_matrix_image = pg.ImageItem(
-        #     raw_data_trace_scan_matrix,
-        #     axisOrder='row-major')
+        self.trace_scan_matrix_image = pg.ImageItem(
+            raw_data_trace_scan_matrix,
+            axisOrder='row-major')
 
-        # self.trace_scan_matrix_image.setRect(
-        #     QtCore.QRectF(
-        #         self._scanning_logic.a_range[0],
-        #         0,
-        #         self._scanning_logic.a_range[1] - self._scanning_logic.a_range[0],
-        #         self._scanning_logic._number_of_repeats)
-        # )
+        self.trace_scan_matrix_image.setRect(
+            QtCore.QRectF(
+                self._scanning_logic.a_range[0],
+                0,
+                self._scanning_logic.a_range[1] - self._scanning_logic.a_range[0],
+                self._scanning_logic._number_of_repeats)
+        )
 
-        # self.retrace_scan_matrix_image = pg.ImageItem(
-        #     raw_data_retrace_scan_matrix,
-        #     axisOrder='row-major')
+        self.retrace_scan_matrix_image = pg.ImageItem(
+            raw_data_retrace_scan_matrix,
+            axisOrder='row-major')
 
-        # self.retrace_scan_matrix_image.setRect(
-        #     QtCore.QRectF(
-        #         self._scanning_logic.a_range[0],
-        #         0,
-        #         self._scanning_logic.a_range[1] - self._scanning_logic.a_range[0],
-        #         self._scanning_logic._number_of_repeats)
-        # )
+        self.retrace_scan_matrix_image.setRect(
+            QtCore.QRectF(
+                self._scanning_logic.a_range[0],
+                0,
+                self._scanning_logic.a_range[1] - self._scanning_logic.a_range[0],
+                self._scanning_logic._number_of_repeats)
+        )
 
-        self.trace_scan_matrix_image = ScanImageItem(image=raw_data_trace_scan_matrix, axisOrder='row-major')
-        self.retrace_scan_matrix_image = ScanImageItem(image=raw_data_retrace_scan_matrix, axisOrder='row-major')
+        # self.trace_scan_matrix_image = ScanImageItem(image=raw_data_trace_scan_matrix, axisOrder='row-major')
+        # self.retrace_scan_matrix_image = ScanImageItem(image=raw_data_retrace_scan_matrix, axisOrder='row-major')
 
 
         self.trace_plot_y_sum_image = pg.PlotDataItem(
@@ -240,6 +258,8 @@ class LaserscannerGui(GUIBase):
         self._mw.noofrepeatsSpinBox.setValue(self._scanning_logic._number_of_repeats)
         self._mw.linenumspinBox.setValue(self._linenum)
 
+        self._mw.clock_frequency_OutputWidget.setText('{0}'.format(round(self._scanning_logic._clock_frequency, 2)))
+
         # Update the inputed/displayed numbers if the cursor has left the field:
         self._mw.startDoubleSpinBox.editingFinished.connect(self.setRegionCursorPosition)
         self._mw.speedDoubleSpinBox.editingFinished.connect(self.change_speed)
@@ -271,39 +291,30 @@ class LaserscannerGui(GUIBase):
             slot=self.custom_scan_start_clicked
             )
 
-        # history actions
-        self._mw.actionForward.triggered.connect(self._scanning_logic.history_forward)
-        self._mw.actionBack.triggered.connect(self._scanning_logic.history_back)
-        self._scanning_logic.signal_history_event.connect(lambda: self.set_history_actions(True))
-        self._scanning_logic.signal_history_event.connect(self.update_cb_range)
-        self._scanning_logic.signal_history_event.connect(self._mw.trace_scan_matrix_ViewWidget.autoRange)
-        self._scanning_logic.signal_history_event.connect(self._mw.retrace_scan_matrix_ViewWidget.autoRange)
-        self._scanning_logic.signal_history_event.connect(self.update_parameters_from_logic)
-
         # Get initial custom scan values
         self._mw.actionCustom_scan_view.setChecked(
-            self._scanning_logic._scanning_device._custom_scan)
+            self._scanning_logic._custom_scan)
 
         self._mw.sweeps_per_action_InputWidget.setValue(self._scanning_logic._custom_scan_sweeps_per_action)
 
-        self._mw.x_ao0_min_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_x_range[0])
-        self._mw.x_ao0_max_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_x_range[1])
+        self._mw.x_ao0_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_x_range[0])
+        self._mw.x_ao0_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_x_range[1])
 
-        self._mw.y_ao1_min_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_y_range[0])
-        self._mw.y_ao1_max_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_y_range[1])
+        self._mw.y_ao1_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_y_range[0])
+        self._mw.y_ao1_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_y_range[1])
 
-        self._mw.z_ao2_min_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_z_range[0])
-        self._mw.z_ao2_max_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_z_range[1])
+        self._mw.z_ao2_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[0])
+        self._mw.z_ao2_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[1])
     
-        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._custom_scan_x_order)
-        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._custom_scan_y_order)
-        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._custom_scan_z_order)
+        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._xyz_orders[0])
+        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._xyz_orders[1])
+        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._xyz_orders[2])
 
-        if self._scanning_logic._custom_scan_mode == CustomScanMode.XYPLOT:
+        if self._scanning_logic._custom_scan_mode.value == 0:
             self._mw.xy_plot_radioButton.setChecked(True)
-        if self._scanning_logic._custom_scan_mode == CustomScanMode.AO:
+        if self._scanning_logic._custom_scan_mode.value == 1:
             self._mw.custom_ao_radioButton.setChecked(True)
-        if self._scanning_logic._custom_scan_mode == CustomScanMode.FUNCTION:
+        if self._scanning_logic._custom_scan_mode.value == 2:
             self._mw.custom_function_radioButton.setChecked(True)
 
         # Connect custom scan buttons
@@ -312,7 +323,7 @@ class LaserscannerGui(GUIBase):
         self._mw.custom_ao_radioButton.clicked.connect(self.custom_ao_radioButton_clicked)
         self._mw.custom_function_radioButton.clicked.connect(self.custom_function_radioButton_clicked)
 
-        self._mw.sweeps_per_action_InputWidget.editingFinished.connnect(self.SetSweepsPerAction)
+        self._mw.sweeps_per_action_InputWidget.editingFinished.connect(self.SetSweepsPerAction)
 
         self._mw.x_ao0_min_doubleSpinBox.editingFinished.connect(self.change_custom_scan_x_range)
         self._mw.x_ao0_max_doubleSpinBox.editingFinished.connect(self.change_custom_scan_x_range)
@@ -340,7 +351,8 @@ class LaserscannerGui(GUIBase):
 
         # Connect the signal from the logic with an update
         self._scanning_logic.signal_change_position.connect(self.update_cursor_position_from_logic)
-        self._scanning_logic.siganl_custom_scan_range_updated.connect(self.update_custom_scan_range_input_from_logic)
+        self._scanning_logic.signal_custom_scan_range_updated.connect(self.update_custom_scan_range_input_from_logic)
+        self._scanning_logic.signal_initialise_matrix.connect(self.initialise_matrix)
 
 
         # Connect other signals from the logic with an update of the gui
@@ -365,14 +377,20 @@ class LaserscannerGui(GUIBase):
         self.region_cursor.sigRegionChanged.connect(self.updateSweepRange)
         self.main_cursor.sigPositionChanged.connect(self.updateCursorPosition)
 
+        # history actions
+        self._mw.actionForward.triggered.connect(self.history_forward_clicked)
+        self._mw.actionBack.triggered.connect(self.history_back_clicked)
+        self._scanning_logic.signal_history_event.connect(lambda: self.set_history_actions(True))
+        self._scanning_logic.signal_history_event.connect(self.history_event)
+
         #################################################################
         #           Connect the colorbar and their actions              #
         #################################################################
         # Get the colorscales at set LUT
         my_colors = ColorScaleInferno()
 
-        self.trace_scan_matrix_ViewWidget.setLookupTable(my_colors.lut)
-        self.retrace_scan_matrix_ViewWidget.setLookupTable(my_colors.lut)
+        self.trace_scan_matrix_image.setLookupTable(my_colors.lut)
+        self.retrace_scan_matrix_image.setLookupTable(my_colors.lut)
 
         # Create colorbars and add them at the desired place in the GUI. Add
         # also units to the colorbar.
@@ -384,11 +402,9 @@ class LaserscannerGui(GUIBase):
         self._mw.cb_ViewWidget.hideAxis('left')
         self._mw.cb_ViewWidget.setLabel('right', 'Fluorescence', units='c/s')
 
-
-        # Now that the ROI for xy and depth is connected to events, update the
-        # default position and initialize the position of the crosshair and
         # all other components:
         self.enable_scan_actions()
+        self.history_event()
         self.show()
 
     def initSettingsUI(self):
@@ -405,8 +421,6 @@ class LaserscannerGui(GUIBase):
         self._sd.rejected.connect(self.keep_former_settings)
         self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.update_settings)
 
-        # clock frequency
-        self._sd.clock_frequency_OutputWidget.setText('{0}'.format(round(self._scanning_logic._clock_frequency, 2)))
         # write the configuration to the settings window of the GUI.
         self.keep_former_settings()
 
@@ -422,29 +436,33 @@ class LaserscannerGui(GUIBase):
     def update_settings(self):
         """ Write new settings from the gui to the file. """
         self._scanning_logic._smoothing_steps = self._sd.smoothing_steps_spinBox.value()
+        self._scanning_logic._oneline_scanner_frequency = self._sd.cursor_frequency_spinBox.value()
+        self._scanning_logic._goto_speed = self._sd.cursor_goto_speed_spinBox.value()
         if self._sd.min_radioButton.isChecked():
             self._scanning_logic._custom_scan_values = CustomScanXYPlotValues.MINIMUM
         if self._sd.mean_radioButton.isChecked():
             self._scanning_logic._custom_scan_values = CustomScanXYPlotValues.MEAN
         if self._sd.max_radioButton.isChecked():
             self._scanning_logic._custom_scan_values = CustomScanXYPlotValues.MAXIMUM
-        self._scanning_logic._custom_scan_order_1_resolution = self._sd.order_1_resolution_spinBox.value()
-        self._scanning_logic._custom_scan_order_2_resolution = self._sd.order_2_resolution_spinBox.value()
-        self._scanning_logic._custom_scan_order_3_resolution = self._sd.order_3_resolution_spinBox.value()
+        self._scanning_logic._order_resolutions[0] = self._sd.order_1_resolution_spinBox.value()
+        self._scanning_logic._order_resolutions[1] = self._sd.order_2_resolution_spinBox.value()
+        self._scanning_logic._order_resolutions[2] = self._sd.order_3_resolution_spinBox.value()
 
     
     def keep_former_settings(self):
         self._sd.smoothing_steps_spinBox.setValue(self._scanning_logic._smoothing_steps)
+        self._sd.cursor_frequency_spinBox.setValue(self._scanning_logic._oneline_scanner_frequency)
+        self._sd.cursor_goto_speed_spinBox.setValue(self._scanning_logic._goto_speed)
         
-        if self._scanning_logic._custom_scan_values == CustomScanXYPlotValues.MINIMUM:
+        if self._scanning_logic._custom_scan_values.value == 0:
             self._sd.min_radioButton.setChecked(True)
-        if self._scanning_logic._custom_scan_values == CustomScanXYPlotValues.MEAN:
+        if self._scanning_logic._custom_scan_values.value == 1:
             self._sd.mean_radioButton.setChecked(True)
-        if self._scanning_logic._custom_scan_values == CustomScanXYPlotValues.MAXIMUM:
+        if self._scanning_logic._custom_scan_values.value == 2:
             self._sd.max_radioButton.setChecked(True)
-        self._sd.order_1_resolution_spinBox.setValue(self._scanning_logic._custom_scan_order_1_resolution)
-        self._sd.order_2_resolution_spinBox.setValue(self._scanning_logic._custom_scan_order_2_resolution)
-        self._sd.order_3_resolution_spinBox.setValue(self._scanning_logic._custom_scan_order_3_resolution)
+        self._sd.order_1_resolution_spinBox.setValue(self._scanning_logic._order_resolutions[0])
+        self._sd.order_2_resolution_spinBox.setValue(self._scanning_logic._order_resolutions[1])
+        self._sd.order_3_resolution_spinBox.setValue(self._scanning_logic._order_resolutions[2])
 
 
     def update_channel(self, index):
@@ -457,18 +475,18 @@ class LaserscannerGui(GUIBase):
         self.refresh_retrace_plots()
 
     def update_custom_scan_range_input_from_logic(self):
-        self._mw.x_ao0_min_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_x_range[0])
-        self._mw.x_ao0_max_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_x_range[1])
+        self._mw.x_ao0_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_x_range[0])
+        self._mw.x_ao0_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_x_range[1])
 
-        self._mw.y_ao1_min_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_y_range[0])
-        self._mw.y_ao1_max_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_y_range[1])
+        self._mw.y_ao1_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_y_range[0])
+        self._mw.y_ao1_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_y_range[1])
 
-        self._mw.z_ao2_min_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_z_range[0])
-        self._mw.z_ao2_max_doubleSpinBox.setValue(self._scanning_logic.self._custom_scan_z_range[1])
+        self._mw.z_ao2_min_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[0])
+        self._mw.z_ao2_max_doubleSpinBox.setValue(self._scanning_logic._custom_scan_z_range[1])
 
-        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._custom_scan_x_order)
-        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._custom_scan_y_order)
-        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._custom_scan_z_order)
+        self._mw.x_ao0_order_InputWidget.setValue(self._scanning_logic._xyz_orders[0])
+        self._mw.y_ao1_order_InputWidget.setValue(self._scanning_logic._xyz_orders[1])
+        self._mw.z_ao2_order_InputWidget.setValue(self._scanning_logic._xyz_orders[2])
 
 
 
@@ -477,18 +495,21 @@ class LaserscannerGui(GUIBase):
         if self._linenum not in range(0, self._scanning_logic._scan_counter + 1):
             self.log.error('Line num set value exceeds range.')
             return -1
-        self._scanning_logic.trace_plot_y = self.trace_scan_matrix[self._linenum, :, 1:]
-        self.refresh_trace_plots() 
+        self._scanning_logic.trace_plot_y = self._scanning_logic.trace_scan_matrix[self._linenum-1, :, 4:].transpose()
+        self._scanning_logic.retrace_plot_y = self._scanning_logic.retrace_scan_matrix[self._linenum-1, :, 4:].transpose()
+        self.refresh_trace_plots()
+        self.refresh_retrace_plots()
 
     def SetSweepsPerAction(self):
-        self._custom_scan_sweeps_per_action = int(self._mw.sweeps_per_action_InputWidget.value())
+        self._scanning_logic._custom_scan_sweeps_per_action = int(self._mw.sweeps_per_action_InputWidget.value())
 
     def ready_clicked(self):
         """ Stop the scan if the state has switched to ready. """
         if self._scanning_logic.module_state() == 'locked':
             self._scanning_logic.stop_scanning()
-
-        self.enable_scan_actions()
+        # Dissable the stop scanning button
+        self._mw.action_stop_scanning.setEnabled(False)
+        
 
     def scan_start_clicked(self):
         """ Manages what happens if the scan is started. """
@@ -502,6 +523,9 @@ class LaserscannerGui(GUIBase):
 
     def custom_scan_start_clicked(self):
         """ Start custom scan. """
+        new_noofrepeats = self._scanning_logic._order_resolutions[0] * self._scanning_logic._order_resolutions[1] * self._scanning_logic._custom_scan_sweeps_per_action
+        self._mw.noofrepeatsSpinBox.setValue(new_noofrepeats)
+        self.change_no_of_repeats()
         self.disable_scan_actions()
         self._scanning_logic.start_scanning(custom_scan = True, tag='gui')
 
@@ -515,6 +539,17 @@ class LaserscannerGui(GUIBase):
             self._mw.actionBack.setEnabled(True)
         else:
             self._mw.actionBack.setEnabled(False)
+
+    def history_forward_clicked(self):
+        self.set_history_actions(False)
+        self._scanning_logic.history_forward()
+        self.set_history_actions(True)
+    
+    def history_back_clicked(self):
+        self.set_history_actions(False)
+        self._scanning_logic.history_back()
+        self.set_history_actions(True)
+
 
     def update_cb_range(self): 
         """Redraw xcolour bar and scan image."""
@@ -538,7 +573,7 @@ class LaserscannerGui(GUIBase):
         self.update_custom_scan_range_input_from_logic()
 
     def custom_scan_xy_plot_radioButton_clicked(self):
-        self._scanning_logic._custom_scan_mode == CustomScanMode.XYPLOT
+        self._scanning_logic._custom_scan_mode = CustomScanMode.XYPLOT
         self._scanning_logic.get_confocal_scan_range()
         self._mw.x_ao0_order_InputWidget.setValue(1)
         self._mw.y_ao1_order_InputWidget.setValue(2)
@@ -550,12 +585,12 @@ class LaserscannerGui(GUIBase):
 
 
     def custom_ao_radioButton_clicked(self):
-        self._scanning_logic._custom_scan_mode == CustomScanMode.AO
+        self._scanning_logic._custom_scan_mode = CustomScanMode.AO
         self._mw.x_ao0_order_InputWidget.setReadOnly(False)
         self._mw.y_ao1_order_InputWidget.setReadOnly(False)
 
     def custom_function_radioButton_clicked(self):
-        self._scanning_logic._custom_scan_mode == CustomScanMode.FUNCTION
+        self._scanning_logic._custom_scan_mode = CustomScanMode.FUNCTION
 
     def change_custom_scan_x_range(self):
         self._scanning_logic._custom_scan_x_range[0] = self._mw.x_ao0_min_doubleSpinBox.value()
@@ -573,9 +608,9 @@ class LaserscannerGui(GUIBase):
         self._scanning_logic.update_confocal_scan_range()
 
     def change_custom_scan_order(self):
-        self._scanning_logic._custom_scan_x_order = self._mw.x_ao0_order_InputWidget.value()
-        self._scanning_logic._custom_scan_y_order = self._mw.y_ao1_order_InputWidget.value()
-        self._scanning_logic._custom_scan_z_order = self._mw.z_ao2_order_InputWidget.value()
+        self._scanning_logic._xyz_orders[0]= self._mw.x_ao0_order_InputWidget.value()
+        self._scanning_logic._xyz_orders[1] = self._mw.y_ao1_order_InputWidget.value()
+        self._scanning_logic._xyz_orders[2] = self._mw.z_ao2_order_InputWidget.value()
 
 
     def shortcut_to_cb_manual(self):
@@ -587,43 +622,45 @@ class LaserscannerGui(GUIBase):
         self.update_cb_range()
 
     def refresh_trace_plots(self):        
-        """ Refresh the xy-matrix image """
-        self.trace_scan_matrix_image.getViewBox().updateAutoRange()        
-        trace_image_data = self._scanning_logic.trace_scan_matrix_image[:, :, 1 + self._channel]
+        """ Refresh the trace-matrix image """
 
-
+        trace_image_data = self._scanning_logic.trace_scan_matrix[:self._scanning_logic._scan_counter, :, 4 + self._channel]
         cb_range = self.get_cb_range()
-
+        
         # Now update image with new color scale, and update colorbar
         self.trace_scan_matrix_image.setImage(image=trace_image_data, levels=(cb_range[0], cb_range[1]))
         self.refresh_colorbar()
 
-        # Refresh the xy-plot image
-        self.trace_plot_y_sum_image.setData(self._scanning_logic.plot_x, self._scanning_logic.trace_plot_y_sum)
-        self.trace_plot_y_image.setData(self._scanning_logic.plot_x, self._scanning_logic.trace_plot_y_image)
-        self.retrace_plot_y_image.setData(self._scanning_logic.plot_x, self._scanning_logic.retrace_plot_y_image)
 
-        # Unlock state widget if scan is finished
-        if self._scanning_logic.module_state() != 'locked':
-            self.enable_scan_actions()
+        _data_trace_plot_y_sum = self._scanning_logic.trace_plot_y_sum[self._channel,:]
+        _data_trace_plot_y = self._scanning_logic.trace_plot_y[self._channel,:]
+
+        # Refresh the xy-plot image
+        self.trace_plot_y_sum_image.setData(self._scanning_logic.plot_x, _data_trace_plot_y_sum)
+        self.trace_plot_y_image.setData(self._scanning_logic.plot_x, _data_trace_plot_y)
+
+        # scan counter display
+        self._mw.elapsed_lines_DisplayWidget.display(self._scanning_logic._scan_counter)
+
 
     def refresh_retrace_plots(self):
-        self.retrace_scan_matrix_image.getViewBox().updateAutoRange()
-        retrace_image_data = self._scanning_logic.retrace_scan_matrix_image[:, :, 1 + self._channel]
+        """ Refresh the trace-matrix image """
+        retrace_image_data = self._scanning_logic.retrace_scan_matrix[:self._scanning_logic._scan_counter, :, 4 + self._channel]
         cb_range = self.get_cb_range()
 
         # Now update image with new color scale, and update colorbar
         self.retrace_scan_matrix_image.setImage(image=retrace_image_data, levels=(cb_range[0], cb_range[1]))
 
+        _data_retrace_plot_y = self._scanning_logic.retrace_plot_y[self._channel,:]
         # Refresh the xy-plot image
-        self.retrace_plot_y_image.setData(self._scanning_logic.plot_x, self._scanning_logic.retrace_plot_y_image)
+        self.retrace_plot_y_image.setData(self._scanning_logic.plot_x, _data_retrace_plot_y)
 
         # Unlock state widget if scan is finished
         if self._scanning_logic.module_state() != 'locked':
             self.enable_scan_actions()
 
 
-    def update_cursor_position_from_logic(self,tag):
+    def update_cursor_position_from_logic(self):
         self._mw.cursorpositionDoubleSpinBox.setValue(self._scanning_logic._current_a)
         self.main_cursor.setValue(self._mw.cursorpositionDoubleSpinBox.value())
         
@@ -653,7 +690,7 @@ class LaserscannerGui(GUIBase):
             self.disable_scan_actions()
 
     def logic_clock_frequency_updated(self):
-        self._sd.clock_frequency_OutputWidget.setText('{0}'.format(round(self._scanning_logic._clock_frequency, 2)))
+        self._mw.clock_frequency_OutputWidget.setText('{0}'.format(round(self._scanning_logic._clock_frequency, 2)))
 
     def menu_settings(self):
         """ This method opens the settings menu. """
@@ -665,16 +702,16 @@ class LaserscannerGui(GUIBase):
         cb_range = self.get_cb_range()
         # Percentile range is None, unless the percentile scaling is selected in GUI.
         pcile_range = None
-        if not self._mw.xy_cb_manual_RadioButton.isChecked():
-            low_centile = self._mw.xy_cb_low_percentile_DoubleSpinBox.value()
-            high_centile = self._mw.xy_cb_high_percentile_DoubleSpinBox.value()
+        if not self._mw.cb_manual_RadioButton.isChecked():
+            low_centile = self._mw.cb_low_percentile_SpinBox.value()
+            high_centile = self._mw.cb_high_percentile_SpinBox.value()
             pcile_range = [low_centile, high_centile]
         self._scanning_logic.save_data(colorscale_range=cb_range, percentile_range=pcile_range, block=False)
 
 
     def save_configuration(self):
         """ Save current statusvariable to the file"""
-        defaultconfigpath = self._save_logic.get_path_for_module(module_name='sps_laserscanner_cfg')
+        defaultconfigpath = self._scanning_logic._save_logic.get_path_for_module(module_name='sps_laserscanner_cfg')
         filename = QtWidgets.QFileDialog.getSaveFileName(
             self._mw,
             'Save Configuration',
@@ -682,25 +719,30 @@ class LaserscannerGui(GUIBase):
             'Configuration files (*.cfg)')[0]
 
         if filename != '':
+            self._save_dialog.show()
             self._scanning_logic.save_history_config()
             variables = self._scanning_logic.getStatusVariables()
             try:
                 config.save(filename, variables)
+                self._save_dialog.hide()
             except:
+                self._save_dialog.hide()
                 print(variables)
                 self.log.exception('Failed to save status variables to {0}'.format(filename))
 
     def load_configuration(self):
         """ Load statusvariable to the program"""
         try:
-            defaultconfigpath = self._save_logic.get_path_for_module(module_name='sps_laserscanner_cfg')
+            defaultconfigpath = self._scanning_logic._save_logic.get_path_for_module(module_name='sps_laserscanner_cfg')
             filename = QtWidgets.QFileDialog.getOpenFileName(
                 self._mw,
                 'Load Configuration',
                 defaultconfigpath,
                 'Configuration files (*.cfg)')[0]
             if os.path.isfile(filename):
+                self._load_dialog.show()
                 variables = config.load(filename)
+                self._load_dialog.hide()
             else:
                 variables = OrderedDict()
             self._scanning_logic.setStatusVariables(variables)
@@ -751,7 +793,7 @@ class LaserscannerGui(GUIBase):
         self._mw.custom_ao_radioButton.clicked.connect(self.custom_ao_radioButton_clicked)
         self._mw.custom_function_radioButton.clicked.connect(self.custom_function_radioButton_clicked)
 
-        self._mw.sweeps_per_action_InputWidget.editingFinished.connnect(self.SetSweepsPerAction)
+        self._mw.sweeps_per_action_InputWidget.editingFinished.connect(self.SetSweepsPerAction)
 
         self._mw.x_ao0_min_doubleSpinBox.editingFinished.connect(self.change_custom_scan_x_range)
         self._mw.x_ao0_max_doubleSpinBox.editingFinished.connect(self.change_custom_scan_x_range)
@@ -769,6 +811,8 @@ class LaserscannerGui(GUIBase):
         # cursor signal
         self.region_cursor.sigRegionChanged.connect(self.updateSweepRange)
         self.main_cursor.sigPositionChanged.connect(self.updateCursorPosition)
+        # line num
+        self._mw.linenumspinBox.editingFinished.connect(self.setLinenum)
 
     def show(self):
         """Make main window visible and put it above all other windows. """
@@ -796,9 +840,10 @@ class LaserscannerGui(GUIBase):
         self.set_scan_range()
 
     def setCursorPosition(self):
-        self.main_cursor.setValue(self._mw.cursorpositionDoubleSpinBox.value())
+
         self._scanning_logic.set_position(a=self._mw.cursorpositionDoubleSpinBox.value())
         self._scanning_logic._change_position()
+        self.main_cursor.setValue(self._mw.cursorpositionDoubleSpinBox.value())
 
     def get_cb_range(self):
         """ Determines the cb_min and cb_max values for the image
@@ -885,18 +930,56 @@ class LaserscannerGui(GUIBase):
         self.region_cursor.sigRegionChanged.disconnect()
         self.main_cursor.sigPositionChanged.disconnect()
 
+        # line num
+        self._mw.linenumspinBox.clear()
+        self._mw.linenumspinBox.editingFinished.disconnect()
+
     def set_scan_range(self):
-        self._scanning_logic._scan_range[0] = self._mw.startDoubleSpinBox.value()
-        self._scanning_logic._scan_range[1] = self._mw.stopDoubleSpinBox.value()
+        scan_range = [self._mw.startDoubleSpinBox.value(), self._mw.stopDoubleSpinBox.value()]
+        self._scanning_logic.set_scan_range(scan_range)
 
     def change_speed(self):
-        self._scanning_logic._scan_speed = self._mw.speedDoubleSpinBox.value()
+        self._scanning_logic.set_scan_speed(self._mw.speedDoubleSpinBox.value())
         
     def change_no_of_repeats(self):
-        self._scanning_logic._number_of_repeats = self._mw.noofrepeatsSpinBox.value()
+        self._scanning_logic.set_number_of_repeats(self._mw.noofrepeatsSpinBox.value())
 
     def change_resolution(self):
-        self._scanning_logic._resolution = self._mw.resolutionSpinBox.value()
+        self._scanning_logic.set_resolution(self._mw.resolutionSpinBox.value())
+
+    def initialise_matrix(self):
+        raw_data_trace_scan_matrix= self._scanning_logic.trace_scan_matrix[:, :, 4 + self._channel]
+        raw_data_retrace_scan_matrix = self._scanning_logic.retrace_scan_matrix[:, :, 4 + self._channel]
+        # Load the images in the display:
+        self.trace_scan_matrix_image.setImage(
+            raw_data_trace_scan_matrix,
+            axisOrder='row-major')
+
+        self.trace_scan_matrix_image.setRect(
+            QtCore.QRectF(
+                self._scanning_logic._scan_range[0],
+                0,
+                self._scanning_logic._scan_range[1] - self._scanning_logic._scan_range[0],
+                self._scanning_logic._number_of_repeats)
+        )
+
+        self.retrace_scan_matrix_image.setImage(
+            raw_data_retrace_scan_matrix,
+            axisOrder='row-major')
+
+        self.retrace_scan_matrix_image.setRect(
+            QtCore.QRectF(
+                self._scanning_logic._scan_range[0],
+                0,
+                self._scanning_logic._scan_range[1] - self._scanning_logic._scan_range[0],
+                self._scanning_logic._number_of_repeats)
+        )
+
+    def history_event(self):
+        self.initialise_matrix()    
+        self.update_parameters_from_logic()
+        self.update_cb_range()
+
 
 
 

@@ -530,6 +530,10 @@ class ConfocalGui(GUIBase):
         self._optimizer_logic.sigRefocusStarted.connect(self.logic_started_refocus)
         # self._scanning_logic.signal_stop_scanning.connect()
 
+        # Connect signal for custom scan
+        self._scanning_logic.signal_custom_scan_started.connect(self.custom_scan_started)
+        self._scanning_logic.signal_custom_scan_stopped.connect(self.custom_scan_stopped)
+
         # Connect the tracker
         self.sigStartOptimizer.connect(self._optimizer_logic.start_refocus)
         self._optimizer_logic.sigRefocusFinished.connect(self._refocus_finished_wrapper)
@@ -792,11 +796,17 @@ class ConfocalGui(GUIBase):
         cb_range = self.get_depth_cb_range()
         self.depth_cb.refresh_colorbar(cb_range[0], cb_range[1])
 
-    def disable_scan_actions(self):
+    def disable_scan_actions(self, tag = ''):
         """ Disables the buttons for scanning.
         """
         # Ensable the stop scanning button
-        self._mw.action_stop_scanning.setEnabled(True)
+        if tag == 'custom_scan':
+            self._mw.action_stop_scanning.setEnabled(False)
+            self._mw.xy_ViewWidget.toggle_crosshair(True, movable=False)
+            self._mw.depth_ViewWidget.toggle_crosshair(True, movable=False)
+
+        else:
+            self._mw.action_stop_scanning.setEnabled(True)
 
         # Disable the start scan buttons
         self._mw.action_scan_xy_start.setEnabled(False)
@@ -864,6 +874,69 @@ class ConfocalGui(GUIBase):
             self._mw.action_scan_xy_resume.setEnabled(True)
         else:
             self._mw.action_scan_xy_resume.setEnabled(False)
+
+    def custom_scan_started(self):
+        """ Disables the buttons for scanning.
+        """
+        self._mw.action_stop_scanning.setEnabled(False)
+        self._mw.xy_ViewWidget.toggle_crosshair(True, movable=False)
+        self._mw.depth_ViewWidget.toggle_crosshair(True, movable=False)
+
+        # Disable the start scan buttons
+        self._mw.action_scan_xy_start.setEnabled(False)
+        self._mw.action_scan_depth_start.setEnabled(False)
+
+        self._mw.action_scan_xy_resume.setEnabled(False)
+        self._mw.action_scan_depth_resume.setEnabled(False)
+
+        self._mw.action_optimize_position.setEnabled(False)
+
+        self._mw.x_min_InputWidget.setEnabled(False)
+        self._mw.x_max_InputWidget.setEnabled(False)
+        self._mw.y_min_InputWidget.setEnabled(False)
+        self._mw.y_max_InputWidget.setEnabled(False)
+        self._mw.z_min_InputWidget.setEnabled(False)
+        self._mw.z_max_InputWidget.setEnabled(False)
+
+        self._mw.xy_res_InputWidget.setEnabled(False)
+        self._mw.z_res_InputWidget.setEnabled(False)
+
+        # Set the zoom button if it was pressed to unpressed and disable it
+        self._mw.action_zoom.setChecked(False)
+        self._mw.action_zoom.setEnabled(False)
+
+        self.set_history_actions(False)
+
+
+    def custom_scan_stopped(self):
+        self._mw.xy_ViewWidget.toggle_crosshair(True, movable=True)
+        self._mw.xy_ViewWidget.toggle_crosshair(True, movable=True)
+        # Disable the stop scanning button
+        self._mw.action_stop_scanning.setEnabled(False)
+
+        # Enable the scan buttons
+        self._mw.action_scan_xy_start.setEnabled(True)
+        self._mw.action_scan_depth_start.setEnabled(True)
+        #self._mw.actionRotated_depth_scan.setEnabled(True)
+
+        self._mw.action_scan_xy_resume.setEnabled(False)
+        self._mw.action_scan_depth_resume.setEnabled(False)
+
+        self._mw.action_optimize_position.setEnabled(True)
+
+        self._mw.x_min_InputWidget.setEnabled(True)
+        self._mw.x_max_InputWidget.setEnabled(True)
+        self._mw.y_min_InputWidget.setEnabled(True)
+        self._mw.y_max_InputWidget.setEnabled(True)
+        self._mw.z_min_InputWidget.setEnabled(True)
+        self._mw.z_max_InputWidget.setEnabled(True)
+
+        self._mw.xy_res_InputWidget.setEnabled(True)
+        self._mw.z_res_InputWidget.setEnabled(True)
+
+        self._mw.action_zoom.setEnabled(True)
+
+        self.set_history_actions(True)
 
     def _refocus_finished_wrapper(self, caller_tag, optimal_pos):
         """ Re-enable the scan buttons in the GUI.
@@ -1920,6 +1993,8 @@ class ConfocalGui(GUIBase):
         self._mw.y_max_InputWidget.setValue(self._scanning_logic.image_y_range[1])
         self._mw.z_min_InputWidget.setValue(self._scanning_logic.image_z_range[0])
         self._mw.z_max_InputWidget.setValue(self._scanning_logic.image_z_range[1])
+        self._mw.xy_res_InputWidget.setValue(self._scanning_logic.xy_resolution)
+        self._mw.z_res_InputWidget.setValue(self._scanning_logic.z_resolution)
 
     def _set_scan_icons(self):
         """ Set the scan icons depending on whether loop-scan is active or not
