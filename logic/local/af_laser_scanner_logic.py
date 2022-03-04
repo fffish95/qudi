@@ -577,7 +577,11 @@ class LaserScannerLogic(GenericLogic):
         if tag != 'custom_scan':
             self.initialise_data_matrix()
             self.signal_scan_lines_next.emit()
-
+        
+        self.current_x = self._scanning_device.get_scanner_position()[0]
+        self.current_y = self._scanning_device.get_scanner_position()[1]
+        self.current_z = self._scanning_device.get_scanner_position()[2]
+        self.current_a = self._scanning_device.get_scanner_position()[3]
         return 0
     
     def start_oneline_scanner(self):
@@ -859,7 +863,7 @@ class LaserScannerLogic(GenericLogic):
                 if self._custom_scan_values.value == 0:
                     data_min_array=[]
                     for i in range(0, len(data_array)):
-                        data_min_array.append(np.min(data_array[i][s_ch]))
+                        data_min_array.append(np.max(data_array[i][s_ch])-np.min(data_array[i][s_ch]))
                     point_value = np.mean(data_min_array)
                 if self._custom_scan_values.value == 1:
                     data_mean_array=[]

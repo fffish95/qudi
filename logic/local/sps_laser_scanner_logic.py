@@ -578,6 +578,11 @@ class LaserScannerLogic(GenericLogic):
             self.initialise_data_matrix()
             self.signal_scan_lines_next.emit()
 
+        self.current_x = self._scanning_device.get_scanner_position()[0]
+        self.current_y = self._scanning_device.get_scanner_position()[1]
+        self.current_z = self._scanning_device.get_scanner_position()[2]
+        self.current_a = self._scanning_device.get_scanner_position()[3]
+
         return 0
     
     def start_oneline_scanner(self):
