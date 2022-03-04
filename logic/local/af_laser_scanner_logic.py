@@ -862,9 +862,11 @@ class LaserScannerLogic(GenericLogic):
             for s_ch in range(0,len(self.get_scanner_count_channels())):
                 if self._custom_scan_values.value == 0:
                     data_min_array=[]
+                    data_max_array=[]
                     for i in range(0, len(data_array)):
-                        data_min_array.append(np.max(data_array[i][s_ch])-np.min(data_array[i][s_ch]))
-                    point_value = np.mean(data_min_array)
+                        data_min_array.append(np.min(data_array[i][s_ch]))
+                        data_max_array.append(np.max(data_array[i][s_ch]))
+                    point_value = np.mean(data_max_array) - np.mean(data_min_array)
                 if self._custom_scan_values.value == 1:
                     data_mean_array=[]
                     for i in range(0, len(data_array)):
