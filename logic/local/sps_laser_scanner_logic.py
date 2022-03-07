@@ -900,6 +900,7 @@ class LaserScannerLogic(GenericLogic):
         self._confocal_logic.signal_custom_scan_stopped.emit()
         if self._custom_scan_sweeps_per_action == 0:
             self._confocal_logic.signal_xy_image_updated.emit()
+            self._confocal_logic.add_new_history_entry()
 
     def set_scan_range(self, scan_range):
         """ Set the scan rnage """

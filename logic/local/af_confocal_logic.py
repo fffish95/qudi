@@ -389,7 +389,14 @@ class ConfocalLogic(GenericLogic):
         self.signal_change_position.emit('history')
         self.signal_history_event.emit()
 
-
+    def add_new_history_entry(self):
+        new_history = ConfocalHistoryEntry(self)
+        new_history.snapshot(self)
+        self.history.append(new_history)
+        if len(self.history) > self.max_history_length:
+            self.history.pop(0)
+        self.history_index = len(self.history) - 1
+        self.signal_history_event.emit()
 
     def switch_hardware(self, to_on=False):
         """ Switches the Hardware off or on.
@@ -786,14 +793,7 @@ class ConfocalLogic(GenericLogic):
                     self._depth_line_pos = self._scan_counter
                 else:
                     self._xy_line_pos = self._scan_counter
-                # add new history entry
-                new_history = ConfocalHistoryEntry(self)
-                new_history.snapshot(self)
-                self.history.append(new_history)
-                if len(self.history) > self.max_history_length:
-                    self.history.pop(0)
-                self.history_index = len(self.history) - 1
-                self.signal_history_event.emit()
+                self.add_new_history_entry()
                 return
 
         image = self.depth_image if self._zscan else self.xy_image

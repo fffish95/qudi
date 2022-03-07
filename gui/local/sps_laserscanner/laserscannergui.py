@@ -739,14 +739,15 @@ class LaserscannerGui(GUIBase):
                 'Load Configuration',
                 defaultconfigpath,
                 'Configuration files (*.cfg)')[0]
-            if os.path.isfile(filename):
-                self._load_dialog.show()
-                variables = config.load(filename)
-                self._load_dialog.hide()
-            else:
-                variables = OrderedDict()
-            self._scanning_logic.setStatusVariables(variables)
-            self._scanning_logic.load_history_config()
+            if filename != '':
+                if os.path.isfile(filename):
+                    self._load_dialog.show()
+                    variables = config.load(filename)
+                    self._load_dialog.hide()
+                else:
+                    variables = OrderedDict()
+                self._scanning_logic.setStatusVariables(variables)
+                self._scanning_logic.load_history_config()
         except:
             self.log.exception('Failed to load status variables from {0}'.format(filename))
 
