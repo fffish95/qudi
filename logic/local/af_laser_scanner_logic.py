@@ -858,25 +858,17 @@ class LaserScannerLogic(GenericLogic):
             data_array = []
             for i in range(0, self._custom_scan_sweeps_per_action):
                 data_array.append(self.trace_scan_matrix[self._scan_counter-1-i,:, 4:])
-
+            data_array = np.array(data_array)
             for s_ch in range(0,len(self.get_scanner_count_channels())):
+                data_ch_array=[]
+                for i in range(0, np.shape(data_array)[1]):
+                    data_ch_array.append(np.mean(data_array.T[s_ch][i]))
                 if self._custom_scan_values.value == 0:
-                    data_min_array=[]
-                    data_max_array=[]
-                    for i in range(0, len(data_array)):
-                        data_min_array.append(np.min(data_array[i][s_ch]))
-                        data_max_array.append(np.max(data_array[i][s_ch]))
-                    point_value = np.mean(data_max_array) - np.mean(data_min_array)
+                    point_value = np.max(data_ch_array) - np.min(data_ch_array)
                 if self._custom_scan_values.value == 1:
-                    data_mean_array=[]
-                    for i in range(0, len(data_array)):
-                        data_mean_array.append(np.mean(data_array[i][s_ch]))
-                    point_value = np.mean(data_mean_array)  
+                    point_value = np.mean(data_ch_array)  
                 if self._custom_scan_values.value == 2:
-                    data_max_array=[]
-                    for i in range(0, len(data_array)):
-                        data_max_array.append(np.max(data_array[i][s_ch]))
-                    point_value = np.mean(data_max_array)
+                    point_value = np.max(data_ch_array)
                 self._confocal_logic.xy_image[:, :, 3 + s_ch][int(self._xyz_counter[1]), int(self._xyz_counter[0])] = point_value
             
             self._confocal_logic.signal_xy_image_updated.emit()
@@ -899,7 +891,7 @@ class LaserScannerLogic(GenericLogic):
         self._custom_scan = False
         self._order_3_counter = 0
         self._confocal_logic.signal_custom_scan_stopped.emit()
-        if self._custom_scan_sweeps_per_action == 0:
+        if self._custom_scan_mode.value == 0:
             self._confocal_logic.signal_xy_image_updated.emit()
             self._confocal_logic.add_new_history_entry()
 
