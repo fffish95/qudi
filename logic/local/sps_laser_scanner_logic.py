@@ -691,7 +691,7 @@ class LaserScannerLogic(GenericLogic):
             if (position_max_linear - position_min_linear) / linear_position_step < self._smoothing_steps:
                 ramp = np.linspace(position_start,position_end, self._resolution)
             else:
-                num_of_linear_steps = np.rint(self._resolution - 2*self._smoothing_steps)
+                num_of_linear_steps = np.round(self._resolution - 2*self._smoothing_steps)
 
                 smooth_curve = np.array(
                     [sum(
