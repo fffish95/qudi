@@ -746,7 +746,7 @@ class LaserScannerLogic(GenericLogic):
             ))
         self.module_state.lock()
         self.start_oneline_scanner()
-        move_line_counts = self._scanning_device.scan_line(move_line)
+        move_line_counts = self._scanning_device.scan_line(move_line, pixel_clock=True)
         self.kill_scanner()
         self.module_state.unlock()
         return 0
@@ -758,7 +758,7 @@ class LaserScannerLogic(GenericLogic):
         return self._scanning_device.get_scanner_count_channels()
 
     
-    def _scan_line(self, pixel_clock = False):
+    def _scan_line(self):
 
         # stops scanning
         if self.stopRequested:
@@ -787,13 +787,13 @@ class LaserScannerLogic(GenericLogic):
                 self.custom_scan_xyz_prepare()
             if self._move_to_start:
                 move_line = self._generate_ramp(self._scanning_device.get_scanner_position()[3], self._scan_range[0])
-                move_line_counts = self._scanning_device.scan_line(move_line)
+                move_line_counts = self._scanning_device.scan_line(move_line, pixel_clock=True)
                 if np.any(move_line_counts == -1):
                     self.stop_scanning()
                     self.signal_scan_lines_next.emit()
                     return
             trace_line = self._generate_ramp(self._scan_range[0], self._scan_range[1])
-            counts_on_trace_line = self._scanning_device.scan_line(trace_line, pixel_clock = pixel_clock)
+            counts_on_trace_line = self._scanning_device.scan_line(trace_line, pixel_clock = True)
             if np.any(counts_on_trace_line == -1):
                 self.stop_scanning()
                 self.signal_scan_lines_next.emit()
@@ -809,7 +809,7 @@ class LaserScannerLogic(GenericLogic):
 
 
             retrace_line = self._generate_ramp(self._scan_range[1], self._scan_range[0])
-            counts_on_retrace_line = self._scanning_device.scan_line(retrace_line, pixel_clock = pixel_clock)
+            counts_on_retrace_line = self._scanning_device.scan_line(retrace_line, pixel_clock = True)
             if np.any(counts_on_retrace_line == -1):
                 self.stop_scanning()
                 self.signal_scan_lines_next.emit()

@@ -387,9 +387,9 @@ class NITTConfocalScanner(Base):
                 self._scanner_ai_task.start()
             self._scanner_clock_task.start()
 
-            # wait for the scanner counter to finish
-            for i, ch in enumerate(self._timetagger_cbm_tasks):
-                self._timetagger_cbm_tasks[i].waitUntilFinished(timeout = 10 * 2 * self._line_length)
+            # # wait for the scanner counter to finish
+            # for i, ch in enumerate(self._timetagger_cbm_tasks):
+            #     self._timetagger_cbm_tasks[i].waitUntilFinished(timeout = 10 * 2 * self._line_length)
             
             # wait for the scanner clock to finish
             self._scanner_clock_task.wait_until_done(timeout = 10 * 2 * self._line_length)
