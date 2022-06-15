@@ -90,7 +90,7 @@ class TimeTaggerLogic(GenericLogic):
 
         self.hist_tt = self._timetagger.histogram(**self.hist_params)
         self.corr_tt = self._timetagger.correlation(**self.corr_params)
-        self.counter_tt = self._timetagger.counter(**self.counter_params)
+        #self.counter_tt = self._timetagger.counter(**self.counter_params)
 
 
     @QtCore.Slot()

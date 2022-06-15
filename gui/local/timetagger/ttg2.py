@@ -257,7 +257,8 @@ class TTGui(GUIBase):
         # t = np.linspace(0, self.numBins*self.binWidth/1000, self.numBins)
         
         def plot_counter():
-            self.curve_counter.setData(self._timetaggerlogic.time_counter, self._timetaggerlogic.counter_tt.getData()[1])
+            # self.curve_counter.setData(self._timetaggerlogic.time_counter, self._timetaggerlogic.counter_tt.getData()[1])
+            pass
 
         def plot_histog():
             self.curve_hist.setData(self._timetaggerlogic.time_hist, self._timetaggerlogic.hist_tt.getData())
