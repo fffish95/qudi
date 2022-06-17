@@ -746,7 +746,7 @@ class LaserScannerLogic(GenericLogic):
             ))
         self.module_state.lock()
         self.start_oneline_scanner()
-        move_line_counts = self._scanning_device.scan_line(move_line, pixel_clock=True)
+        move_line_counts = self._scanning_device.scan_line(move_line)
         self.kill_scanner()
         self.module_state.unlock()
         return 0
@@ -787,7 +787,7 @@ class LaserScannerLogic(GenericLogic):
                 self.custom_scan_xyz_prepare()
             if self._move_to_start:
                 move_line = self._generate_ramp(self._scanning_device.get_scanner_position()[3], self._scan_range[0])
-                move_line_counts = self._scanning_device.scan_line(move_line, pixel_clock=True)
+                move_line_counts = self._scanning_device.scan_line(move_line)
                 if np.any(move_line_counts == -1):
                     self.stop_scanning()
                     self.signal_scan_lines_next.emit()

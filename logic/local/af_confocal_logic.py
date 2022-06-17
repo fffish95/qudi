@@ -751,7 +751,7 @@ class ConfocalLogic(GenericLogic):
         move_line = np.vstack([lsx, lsy, lsz, lsa])
         self.module_state.lock()
         self.start_oneline_scanner()
-        move_line_counts = self._scanning_device.scan_line(move_line, pixel_clock=True)
+        move_line_counts = self._scanning_device.scan_line(move_line)
         self.kill_scanner()
         self.module_state.unlock()
         return 0
@@ -818,7 +818,7 @@ class ConfocalLogic(GenericLogic):
                     start_line = np.vstack(
                         [lsx, lsy, lsz, np.ones(lsx.shape) * self._current_a])
                 # move to the start position of the scan, counts are thrown away
-                start_line_counts = self._scanning_device.scan_line(start_line, pixel_clock=True)
+                start_line_counts = self._scanning_device.scan_line(start_line)
                 self._move_to_start = False
                 if np.any(start_line_counts == -1):
                     self.stopRequested = True
@@ -878,7 +878,7 @@ class ConfocalLogic(GenericLogic):
                         ])
 
             # return the scanner to the start of next line, counts are thrown away
-            return_line_counts = self._scanning_device.scan_line(return_line, pixel_clock=True)
+            return_line_counts = self._scanning_device.scan_line(return_line)
             if np.any(return_line_counts == -1):
                 self.stopRequested = True
                 self.signal_scan_lines_next.emit()
