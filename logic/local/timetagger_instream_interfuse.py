@@ -24,7 +24,7 @@ class TTInstreamInterfuse(Base, DataInStreamInterface):
     Example config for copy-paste:
 
     timetagger_instream_interfuse:
-        module.Class: 'interfuse.timetagger_instream_interfuse.TTInstreamInterfuse'
+        module.Class: 'local.timetagger_instream_interfuse.TTInstreamInterfuse'
         connect:
             timetagger: 'tagger'
         available_channels:  

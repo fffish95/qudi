@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains the Qudi hardware LocalArduinoServo class.
+This file contains the Qudi hardware ArduinoServo class.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ from interface.motor_interface import MotorInterface
 from Arduino import Arduino
 import time
 
-class LocalArduinoServo(Base, MotorInterface):
+class ArduinoServo(Base, MotorInterface):
     """ Designed for driving a servo motor through Arduino.
 
     See [arduino-python3 Command API] & [arduino-libraries/Servo] for details.
@@ -35,7 +35,7 @@ class LocalArduinoServo(Base, MotorInterface):
     Example config for copy-paste:
 
     ServoMotor:
-        module.Class: 'local.local_arduino_servo.LocalArduinoServo'
+        module.Class: 'local.arduino_servo.ArduinoServo'
         # Arduino Params
         baud: 9600
         tmeout: 2

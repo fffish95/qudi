@@ -27,7 +27,7 @@ from core.util.mutex import Mutex
 from qtpy import QtCore
 
 
-class LocalStepMotorLogic(GenericLogic):
+class StepMotorLogic(GenericLogic):
     stepmotor1 = Connector(interface='MotorInterface')
     def __init__(self, config, **kwargs):
         super().__init__(config= config, **kwargs)
